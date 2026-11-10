@@ -1,0 +1,245 @@
+/* excel/cards.js: the "Open it in Excel" card (lesson 11 and every Build it project) and the "Two Excels" card (lesson 12).
+   Every step has a plain instruction and a picture (Jason's rule: humans are visual). The pictures are simple
+   original drawings in SVG: no Microsoft logos or icons, just the word Excel on a plain green tile.
+   SCREENSHOT TODO: each figure carries data-replace="..." naming the real screenshot of an ordinary student
+   view (not an upgraded Copilot license) that should replace it later. Swap the <svg> for an <img> with the same alt text.
+   Microsoft facts used here are the verified list in excel-spec.md (Microsoft Support, checked Nov 6, 2026). */
+(function () {
+  'use strict';
+  var XL = window.XL;
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  var W = 320, H = 196;
+
+  /* ---------- drawing helpers (SVG strings, colors from the page's theme tokens via CSS classes) ---------- */
+  function r(x, y, w, h, cls, rx) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + (rx == null ? 4 : rx) + '" class="' + cls + '"/>'; }
+  function t(x, y, s, cls, anchor) { return '<text x="' + x + '" y="' + y + '" class="' + (cls || 'f-t') + '"' + (anchor ? ' text-anchor="' + anchor + '"' : '') + '>' + esc(s) + '</text>'; }
+  function btn(x, y, w, label, cls) { return r(x, y, w, 24, cls || 'f-btn', 5) + t(x + w / 2, y + 16, label, cls === 'f-btn-p' ? 'f-t f-tw' : 'f-t f-tb', 'middle'); }
+  /* the red outline that marks the one thing to click, with a number badge */
+  function hl(x, y, w, h, n) {
+    return '<rect x="' + (x - 4) + '" y="' + (y - 4) + '" width="' + (w + 8) + '" height="' + (h + 8) + '" rx="7" class="f-hl"/>' +
+      (n ? '<circle cx="' + (x + w + 4) + '" cy="' + (y - 4) + '" r="10" class="f-badge"/>' + t(x + w + 4, y, String(n), 'f-t f-tw f-sm', 'middle') : '');
+  }
+  function tile(x, y, w, h) { return r(x, y, w, h, 'f-xl', 5) + t(x + w / 2, y + h / 2 + 4, 'Excel', 'f-t f-tw f-sm', 'middle'); }
+  function grid(x, y, cols, rows, cw, rh) {
+    var s = '';
+    for (var i = 0; i <= rows; i++) s += '<line x1="' + x + '" x2="' + (x + cols * cw) + '" y1="' + (y + i * rh) + '" y2="' + (y + i * rh) + '" class="f-line"/>';
+    for (var j = 0; j <= cols; j++) s += '<line x1="' + (x + j * cw) + '" x2="' + (x + j * cw) + '" y1="' + y + '" y2="' + (y + rows * rh) + '" class="f-line"/>';
+    return s;
+  }
+  /* a plain browser window */
+  function browser(url, inner) {
+    return r(1, 1, W - 2, H - 2, 'f-win', 8) + r(1, 1, W - 2, 30, 'f-chrome', 8) + r(1, 22, W - 2, 10, 'f-chrome', 0) +
+      '<circle cx="14" cy="15" r="4" class="f-dot"/><circle cx="26" cy="15" r="4" class="f-dot"/><circle cx="38" cy="15" r="4" class="f-dot"/>' +
+      r(52, 7, 214, 17, 'f-url', 8) + t(62, 19, url, 'f-t f-sm f-mut') + inner;
+  }
+  /* a plain desktop app window */
+  function appWin(title, inner) {
+    return r(1, 1, W - 2, H - 2, 'f-win', 8) + r(1, 1, W - 2, 28, 'f-xlbar', 8) + r(1, 20, W - 2, 9, 'f-xlbar', 0) +
+      t(12, 19, 'Excel', 'f-t f-tw f-b') + t(W / 2, 19, title, 'f-t f-tw f-sm', 'middle') + inner;
+  }
+  function ribbon(y, tabs) { var s = r(1, y, W - 2, 22, 'f-chrome', 0), x = 12; tabs.forEach(function (tb) { s += t(x, y + 15, tb, 'f-t f-sm'); x += tb.length * 6.4 + 14; }); return s; }
+  function fig(svg, alt, replace) {
+    return '<figure class="xl-fig" data-replace="' + esc(replace) + '"><svg viewBox="-6 -14 ' + (W + 14) + ' ' + (H + 20) + '" role="img" aria-label="' + esc(alt) + '">' + svg + '</svg></figure>';
+  }
+  var F = {};
+  F.downloads = function (file) {
+    return fig(browser('rjedtech.github.io/Raider-FinanceLab/excel.html',
+      '<path d="M296 10 v8 m-4 -4 l4 4 l4 -4 M290 21 h12" class="f-stroke"/>' + hl(286, 6, 20, 20, 1) +
+      r(150, 34, 164, 70, 'f-panel', 6) + t(160, 52, 'Recent downloads', 'f-t f-sm f-b') +
+      r(160, 60, 22, 26, 'f-file', 3) + t(171, 77, 'xlsx', 'f-t f-xs f-tw', 'middle') + t(190, 72, file, 'f-t f-sm') + t(190, 86, 'Open file', 'f-t f-xs f-link') +
+      hl(158, 58, 148, 30, 2) +
+      r(14, 44, 120, 10, 'f-ph', 3) + r(14, 62, 100, 10, 'f-ph', 3) + grid(14, 116, 4, 3, 38, 18)),
+      'A browser window. Its download arrow, at the top right, is outlined and marked 1. Under it, the recent downloads list shows ' + file + ', outlined and marked 2.',
+      'Screenshot: Edge or Chrome on an RJ laptop, downloads panel open, showing the .xlsx file');
+  };
+  F.signin = function () {
+    return fig(browser('excel.cloud.microsoft',
+      tile(20, 46, 52, 30) + t(84, 66, 'Sign in to use Excel', 'f-t f-b') +
+      r(84, 84, 200, 26, 'f-field', 5) + t(94, 101, 'Your RJ email', 'f-t f-sm f-mut') + hl(84, 84, 200, 26, 1) +
+      btn(204, 124, 80, 'Next', 'f-btn-p') + hl(204, 124, 80, 24, 2)),
+      'The Microsoft sign-in page for Excel for the web. The email box is outlined and marked 1 (type your RJ email), and the Next button is marked 2.',
+      'Screenshot: excel.office.com sign-in page as a student sees it');
+  };
+  F.upload = function (file) {
+    return fig(browser('excel.cloud.microsoft',
+      tile(14, 40, 42, 24) + t(64, 57, 'Excel', 'f-t f-b') +
+      r(14, 76, 70, 50, 'f-panel', 5) + t(49, 140, 'Blank workbook', 'f-t f-xs', 'middle') +
+      btn(232, 40, 74, 'Upload') + hl(232, 40, 74, 24, 1) +
+      t(100, 92, 'Recent', 'f-t f-sm f-b') + r(100, 100, 206, 16, 'f-ph', 3) + r(100, 122, 206, 16, 'f-ph', 3) +
+      t(14, 176, 'Then pick ' + file + ' from Downloads', 'f-t f-sm f-mut')),
+      'The Excel for the web start page. The Upload button at the top right is outlined and marked 1.',
+      'Screenshot: Excel for the web start page with the Upload button, student account');
+  };
+  F.webOpen = function (file) {
+    var name = file.replace(/\.xlsx$/, '');
+    return fig(browser('excel.cloud.microsoft',
+      r(1, 32, W - 2, 22, 'f-xlbar', 0) + t(12, 47, 'Excel', 'f-t f-tw f-b') + t(64, 47, name + ' · Saved', 'f-t f-tw f-sm') + hl(62, 35, 132, 16, 1) +
+      ribbon(54, ['File', 'Home', 'Insert', 'Formulas', 'Data']) +
+      r(1, 76, W - 2, 18, 'f-panel', 0) + t(10, 89, 'fx', 'f-t f-sm f-mut') + t(30, 89, '=SUM(B4:B8)', 'f-t f-sm f-mono') +
+      grid(10, 100, 5, 4, 60, 20)),
+      'Your workbook open in Excel for the web. Next to its name, the word Saved is outlined and marked 1: it saves itself to OneDrive.',
+      'Screenshot: the downloaded budget open in Excel for the web, showing the Saved status next to the file name');
+  };
+  F.webCopy = function () {
+    return fig(browser('excel.cloud.microsoft',
+      r(1, 32, 130, 162, 'f-panel', 0) + t(14, 52, 'File', 'f-t f-b') +
+      t(14, 78, 'New', 'f-t f-sm') + t(14, 100, 'Open', 'f-t f-sm') + t(14, 122, 'Save As', 'f-t f-sm f-b') + hl(10, 110, 112, 18, 1) +
+      r(140, 108, 160, 34, 'f-win', 5) + t(152, 129, 'Download a Copy', 'f-t f-sm') + hl(146, 112, 148, 26, 2)),
+      'The File menu in Excel for the web. Save As is outlined and marked 1, and Download a Copy is marked 2.',
+      'Screenshot: Excel for the web File menu showing Download a Copy');
+  };
+  F.folder = function (file) {
+    return fig(r(1, 1, W - 2, H - 2, 'f-win', 8) + r(1, 1, W - 2, 28, 'f-chrome', 8) + r(1, 20, W - 2, 9, 'f-chrome', 0) + t(12, 19, 'Downloads', 'f-t f-b') +
+      r(1, 29, 86, H - 30, 'f-panel', 0) + t(12, 52, 'Desktop', 'f-t f-sm f-mut') + t(12, 74, 'Documents', 'f-t f-sm f-mut') + t(12, 96, 'Downloads', 'f-t f-sm f-b') + t(12, 118, 'OneDrive', 'f-t f-sm f-mut') +
+      r(108, 46, 34, 42, 'f-file', 4) + t(125, 72, 'xlsx', 'f-t f-xs f-tw', 'middle') + t(125, 104, file, 'f-t f-xs', 'middle') + hl(102, 42, 46, 70, 1) +
+      t(170, 72, 'Double-click it', 'f-t f-sm f-mut'),
+      'Your Downloads folder. The ' + file + ' file is outlined and marked 1: double-click it.',
+      'Screenshot: File Explorer (or Finder) Downloads folder on an RJ laptop with the .xlsx file');
+  };
+  F.protected = function (file) {
+    return fig(appWin(file,
+      ribbon(29, ['File', 'Home', 'Insert', 'Data']) +
+      r(1, 51, W - 2, 34, 'f-warn', 0) + t(10, 66, 'PROTECTED VIEW', 'f-t f-sm f-b') + t(10, 79, 'Be careful: files from the internet...', 'f-t f-xs') +
+      btn(222, 56, 88, 'Enable Editing') + hl(222, 56, 88, 24, 1) +
+      grid(10, 96, 5, 4, 60, 22)),
+      'The Excel desktop app with a yellow Protected View bar across the top. The Enable Editing button is outlined and marked 1.',
+      'Screenshot: desktop Excel Protected View bar on a downloaded file, ordinary student license');
+  };
+  F.save = function () {
+    function key(x, label, w) { return r(x, 92, w, 40, 'f-key', 7) + t(x + w / 2, 117, label, 'f-t f-b', 'middle'); }
+    return fig(appWin('monthly budget', ribbon(29, ['File', 'Home', 'Insert', 'Data']) + key(70, 'Ctrl', 70) + t(160, 118, '+', 'f-t f-b', 'middle') + key(180, 'S', 50) + hl(70, 92, 160, 40, 1) +
+      t(160, 160, 'On a Mac: Cmd + S', 'f-t f-sm f-mut', 'middle')),
+      'The keys Ctrl and S, outlined and marked 1. Press them together to save. On a Mac, Cmd and S.',
+      'Screenshot: desktop Excel with the Save button or the Save As window');
+  };
+  F.findExcel = function () {
+    return fig(r(1, 1, W - 2, H - 2, 'f-win', 6) +
+      r(14, 16, 200, 26, 'f-field', 5) + t(24, 33, 'Excel', 'f-t f-sm') + hl(14, 16, 200, 26, 1) +
+      t(14, 64, 'Best match', 'f-t f-xs f-mut') +
+      tile(14, 72, 40, 26) + t(64, 90, 'Excel', 'f-t f-b') + t(64, 104, 'App', 'f-t f-xs f-mut') + hl(10, 68, 120, 42, 2) +
+      r(14, 124, 140, 10, 'f-ph', 3) + r(14, 142, 110, 10, 'f-ph', 3),
+      'A computer search box with the word Excel typed in it, outlined and marked 1. Under Best match, the Excel app is outlined and marked 2.',
+      'Screenshot: Windows Start search on an RJ student laptop, typing Excel, with the Excel app as the best match');
+  };
+  F.openDesktop = function () {
+    return fig(browser('excel.cloud.microsoft',
+      r(1, 32, W - 2, 22, 'f-xlbar', 0) + t(12, 47, 'Excel', 'f-t f-tw f-b') + t(64, 47, 'lab data · Saved', 'f-t f-tw f-sm') +
+      ribbon(54, ['File', 'Home', 'Insert', 'Data']) + btn(232, 56, 74, 'Editing ▾') + hl(232, 56, 74, 18, 1) +
+      r(150, 82, 160, 64, 'f-win', 5) + t(162, 102, 'Editing', 'f-t f-sm') + t(162, 120, 'Viewing', 'f-t f-sm f-mut') + t(162, 138, 'Open in Desktop', 'f-t f-sm f-b') + hl(156, 126, 148, 18, 2) +
+      grid(10, 84, 2, 4, 60, 22)),
+      'Excel for the web. The Editing button at the right of the ribbon is outlined and marked 1. Its menu shows Open in Desktop, marked 2.',
+      'Screenshot: Excel for the web, Editing menu open, showing Open in Desktop');
+  };
+  F.canvasStart = function () {
+    return fig(browser('canvas: your course',
+      r(1, 32, 70, H - 33, 'f-rjband', 0) + t(12, 56, 'Home', 'f-t f-tw f-xs') + t(12, 74, 'Modules', 'f-t f-tw f-xs') + t(12, 92, 'Assignments', 'f-t f-tw f-xs') +
+      t(86, 58, 'Monthly budget', 'f-t f-b') + r(86, 68, 150, 9, 'f-ph', 3) + r(86, 84, 120, 9, 'f-ph', 3) +
+      btn(196, 104, 110, 'Start Assignment', 'f-btn-p') + hl(196, 104, 110, 24, 1)),
+      'A Canvas assignment page. The Start Assignment button is outlined and marked 1.',
+      'Screenshot: the Canvas assignment page with Start Assignment, student view');
+  };
+  F.canvasUpload = function (file, mark) {
+    return fig(browser('canvas: your course',
+      r(1, 32, 70, H - 33, 'f-rjband', 0) +
+      t(86, 56, 'File Upload', 'f-t f-sm f-b') + '<line x1="86" x2="152" y1="61" y2="61" class="f-uline"/>' + (mark === 'upload' ? hl(84, 44, 70, 20, 1) : '') +
+      btn(86, 72, 92, 'Upload File') + (mark === 'upload' ? hl(86, 72, 92, 24, 2) : '') +
+      r(86, 108, 22, 26, 'f-file', 3) + t(97, 125, 'xlsx', 'f-t f-xs f-tw', 'middle') + t(116, 125, file, 'f-t f-sm') +
+      btn(196, 150, 110, 'Submit Assignment', 'f-btn-p') + (mark === 'submit' ? hl(196, 150, 110, 24, 1) : '')),
+      mark === 'upload' ? 'The Canvas submission box. The File Upload tab is marked 1 and the Upload File button is marked 2.' : 'The Canvas submission box with ' + file + ' attached. The Submit Assignment button is outlined and marked 1.',
+      mark === 'upload' ? 'Screenshot: Canvas File Upload tab with Upload File, student view' : 'Screenshot: Canvas submission with the file attached and Submit Assignment');
+  };
+  XL.figures = F;
+
+  function step(n, title, html, figure) {
+    return '<li class="xl-ostep"><div class="xl-otext"><p class="xl-on">' + (typeof n === 'number' || /^\d/.test(n) ? 'Step ' + n : n) + '</p><h4>' + title + '</h4><p>' + html + '</p></div>' + figure + '</li>';
+  }
+  /* Real screenshots, taken Nov 6, 2026 on an RJ laptop and RJ accounts (cropped; no names shown). */
+  F.shot = function (src, alt) { return '<figure class="xl-fig xl-shot"><img src="excel/img/' + src + '" alt="' + esc(alt) + '" loading="lazy" decoding="async"></figure>'; };
+  F.downloads = function () { return F.shot('edge-download-arrow.jpg', 'The Microsoft Edge toolbar. The download arrow is outlined and marked 1.'); };
+  F.folder = function () { return F.shot('explorer-downloads.jpg', 'File Explorer showing the Downloads folder. The file monthly-budget is outlined and marked 1.'); };
+  F.upload = function () { return F.shot('web-upload.jpg', 'Excel for the web start page. The Upload a file button is outlined and marked 1.'); };
+  F.webOpen = function () { return F.shot('web-saved.jpg', 'The budget open in Excel for the web. The cloud icon with a check mark, next to the file name, is outlined and marked 1.'); };
+  F.webCopy = function () { return F.shot('web-download-copy.jpg', 'The File menu in Excel for the web. Create a Copy is marked 1 and Download a Copy is marked 2.'); };
+  F.save = function () { return F.shot('desktop-autosave.jpg', 'The top left of desktop Excel. The AutoSave switch, set to On, is marked 1, and the Save button is marked 2.'); };
+  F.findExcel = function () { return F.shot('start-search.jpg', 'The Windows Start button, marked 1, and the Start search box, marked 2.'); };
+  F.openDesktop = function () { return F.shot('web-open-desktop.jpg', 'Excel for the web. The More options button is marked 1, Editing is marked 2, and Open in Desktop is marked 3.'); };
+  F.canvasStart = function () { return F.shot('canvas-choose-upload.jpg', 'A Canvas assignment, student view. Under Choose a submission type, the Upload button is outlined and marked 1.'); };
+  F.canvasUpload = function (file, mark) {
+    return mark === 'upload'
+      ? F.shot('canvas-choose-file.jpg', 'The Canvas upload box. The link Choose a file to upload is outlined and marked 1.')
+      : F.shot('canvas-submit.jpg', 'Canvas with monthly-budget.xlsx attached, marked 1, and the Submit Assignment button, marked 2.');
+  };
+  /* tabs with arrow-key support */
+  function tabs(box, names) {
+    var list = box.querySelector('[role=tablist]'), btns = list.querySelectorAll('[role=tab]'), panels = box.querySelectorAll('[role=tabpanel]');
+    function pick(i, focus) {
+      btns.forEach(function (b, k) { b.setAttribute('aria-selected', k === i ? 'true' : 'false'); b.tabIndex = k === i ? 0 : -1; panels[k].hidden = k !== i; });
+      if (focus) btns[i].focus();
+      XL.store.set('rjmathlab-excel-which', names[i]);
+    }
+    btns.forEach(function (b, k) {
+      b.addEventListener('click', function () { pick(k); });
+      b.addEventListener('keydown', function (e) {
+        var n = btns.length;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); pick((k + 1) % n, true); }
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); pick((k + n - 1) % n, true); }
+        else if (e.key === 'Home') { e.preventDefault(); pick(0, true); } else if (e.key === 'End') { e.preventDefault(); pick(n - 1, true); }
+      });
+    });
+    var last = XL.store.get('rjmathlab-excel-which'), i0 = Math.max(0, names.indexOf(last));
+    pick(i0);
+  }
+  var uid = 0;
+  /* The Open it in Excel card. o.file: the downloaded file name. */
+  XL.openCard = function (box, o) {
+    o = o || {}; var file = o.file || 'your-file.xlsx', id = 'xo' + (++uid);
+    box.innerHTML = '<div class="xl-open">' +
+      '<h3>Open it in Excel</h3>' +
+      '<ol class="xl-osteps">' + step(1, 'Find the file', 'Your browser saved <b>' + esc(file) + '</b> in your <b>Downloads</b> folder. In Edge, click the <b>download arrow</b> at the top right to see your recent downloads.', F.downloads(file)) + '</ol>' +
+      '<p class="xl-which">Step 2: open it. Pick the Excel you will use:</p>' +
+      '<div class="xl-tabs" role="tablist" aria-label="Which Excel">' +
+      '<button type="button" role="tab" id="' + id + '-tw" aria-controls="' + id + '-pw">Excel for the web</button>' +
+      '<button type="button" role="tab" id="' + id + '-td" aria-controls="' + id + '-pd">Excel desktop app</button></div>' +
+      '<div role="tabpanel" id="' + id + '-pw" aria-labelledby="' + id + '-tw" class="xl-panel"><ol class="xl-osteps">' +
+      step('2a', 'Sign in', 'Go to <b>excel.cloud.microsoft</b> (typing excel.office.com takes you there too) and sign in with your <b>RJ account</b> if it asks. It works on any computer with a browser: nothing to install.', F.signin()) +
+      step('2b', 'Upload the file', 'Choose <b>Upload a file</b>, then pick <b>' + esc(file) + '</b> from your Downloads folder. It opens in Excel for the web.', F.upload(file)) +
+      step('2c', 'It saves itself', 'Your sheet opens in the browser with all your formulas. The little cloud with a check mark next to the file name means it is saved to your OneDrive. There is no Save button to press.', F.webOpen(file)) +
+      '</ol></div>' +
+      '<div role="tabpanel" id="' + id + '-pd" aria-labelledby="' + id + '-td" class="xl-panel" hidden><ol class="xl-osteps">' +
+      step('2a', 'Open the file', 'Open your <b>Downloads</b> folder and double-click <b>' + esc(file) + '</b>. (Windows may hide the .xlsx ending, so look for the name with the green Excel icon.) It opens in the Excel desktop app.', F.folder(file)) +
+      step('2b', 'If you see a yellow bar', 'See a yellow bar that says <b>Protected View</b>? Excel opens some files from the internet as read-only at first, to keep you safe. You made this file, so click <b>Enable Editing</b>. No yellow bar? Skip this step.', F.protected(file)) +
+      step('2c', 'Save it', 'Look at the top left. If <b>AutoSave</b> is <b>On</b>, Excel is already saving your work to OneDrive. If it is Off, press <b>Ctrl+S</b> (on a Mac, <b>Cmd+S</b>) and pick your OneDrive.', F.save()) +
+      step('If you need it', 'Can’t find the desktop app?', 'Excel is already installed on your RJ laptop. Click <b>Start</b> (or press the <b>Windows key</b>), type <b>Excel</b>, and open the app. If it asks you to sign in, use your <b>RJ account</b>. Still stuck? Use Excel for the web for now (everything in these lessons works there) and ask your teacher or RJ tech support.', F.findExcel()) +
+      '</ol></div>' +
+      '<h3 class="xl-canvas-h">Turn it in on Canvas</h3>' +
+      '<ol class="xl-osteps">' +
+      step(3, 'Choose Upload', 'Open the assignment in Canvas. Under <b>Choose a submission type</b>, click <b>Upload</b>.', F.canvasStart()) +
+      step(4, 'Attach your file', 'Click <b>Choose a file to upload</b> (or drag your file into the box) and pick your saved .xlsx file. Used Excel for the web? Canvas needs the file itself: in Excel for the web, choose <b>File &gt; Create a Copy &gt; Download a Copy</b>, then upload that copy.', F.canvasUpload(file, 'upload')) +
+      step(5, 'Submit', 'Check that your file is listed with a green check, then press <b>Submit Assignment</b>. Done.', F.canvasUpload(file, 'submit')) +
+      '</ol>' +
+      '<details class="xl-webcopy"><summary>Picture: Download a Copy in Excel for the web</summary>' + F.webCopy() + '</details>' +
+      '</div>';
+    tabs(box, ['web', 'desktop']);
+  };
+
+  /* The Two Excels card: the student card text from the spec, word for word where it can be. */
+  XL.twoExcelsCard = function (box) {
+    box.innerHTML = '<div class="xl-two">' +
+      '<h3>Two Excels. Same file. Pick the right one.</h3>' +
+      '<div class="xl-two-cols">' +
+      '<section class="xl-two-c"><h4>Excel for the web</h4><p class="xl-two-sub">excel.cloud.microsoft, signed in with your RJ account</p><ul>' +
+      '<li>Works on any computer with a browser. Nothing to install.</li>' +
+      '<li>Saves itself to your OneDrive as you go.</li>' +
+      '<li>Your lab partner can work in the same file at the same time.</li>' +
+      '<li>Everything in FinanceLab works here.</li>' +
+      '<li>Needs internet. A very big workbook (over 100 MB) saved in OneDrive or SharePoint will not open in the browser.</li></ul></section>' +
+      '<section class="xl-two-c"><h4>Excel desktop app</h4><p class="xl-two-sub">The green Excel icon. It’s already installed on your RJ laptop.</p><ul>' +
+      '<li>Has extra power tools the web version doesn’t: the Data Analysis button (regression, t-tests, histograms), Power Pivot, macros, and more chart options.</li>' +
+      '<li>Works without internet.</li>' +
+      '<li>Handles very big files.</li></ul></section>' +
+      '</div>' +
+      '<p class="xl-two-same"><b>The same in both:</b> the same .xlsx file and the same formulas. Everything in Spreadsheet basics and Build it works in either one. (Macros: the desktop app runs VBA macros; the web version uses Office Scripts instead.)</p>' +
+      '<div class="xl-rule"><p><b>Rule of thumb:</b> start in either one. If a button you need is missing, you’re probably in the web version: choose <b>Editing &gt; Open in Desktop</b> (in a narrow window, click <b>…</b> first) and keep going in the same file.</p>' + F.openDesktop() + '</div>' +
+      '</div>';
+  };
+})();
