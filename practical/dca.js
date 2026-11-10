@@ -1,0 +1,12 @@
+BioLab.addPractical({
+dca:{
+ hook:'You decide to invest $200 at the start of every month in a stock whose price swings: $200, then $160, then $125, then $160. Spending the same each month, is your average cost per share above, equal to or below the average of those four prices?',
+ answer:'Below. $200 buys 1.00, 1.25, 1.60 and 1.25 shares: 5.10 shares for $800, so your average cost is $800 ÷ 5.10 = $156.86, while the average price is $161.25. The cheap month bought the most shares, which pulls the average cost down. It does not guarantee a profit: if the price keeps falling, the shares are still worth less than you paid.',
+ uses:[
+  'A 401(k) or 403(b) takes the same percent from every paycheck and buys shares of your chosen funds, so most workers dollar-cost average without thinking about it.',
+  'Brokerage apps let you set up automatic investments, a fixed dollar amount each week or month, and buy fractional shares with it.',
+  'Your brokerage statement reports your average cost per share (your cost basis), the number used to figure gain or loss and taxes when you sell.'
+ ],
+ takeaway:'Equal dollars buy more shares when prices are low, so your average cost is the harmonic mean of the prices and never above their average. It lowers the cost of a habit; it does not remove the risk.'
+}
+});
