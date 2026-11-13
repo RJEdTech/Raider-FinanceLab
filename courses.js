@@ -2,7 +2,7 @@
    Reif, 2023-24 to 2025-26) and the 2026-27 syllabus topics, pulled Nov 10, 2026. Tools shared with Raider MathLab are copies:
    change both. Their skills line is set here so it names the Personal Finance topic. */
 BioLab.COURSES = [
- {id:'pf',name:'Personal Finance',blurb:'RJ Personal Finance, in the order of the 2026-27 syllabus: budgeting (now, college and career), borrowing, taxes and giving, saving and investing, and risk management.',
+ {id:'pf',finals:[{"t": "Personal Finance final review", "units": [0, 1, 2, 5], "note": "Covers paychecks, budgeting, paying for college and investing. Your teacher decides what is on the final, so check the study guide."}],name:'Personal Finance',blurb:'RJ Personal Finance, in the order of the 2026-27 syllabus: budgeting (now, college and career), borrowing, taxes and giving, saving and investing, and risk management.',
   units:[
    {n:'Unit 1',t:'Goals, careers and your first paycheck',ids:['paycheck','debtfit'],note:'With the Career Worksheet: find the salary, then the semi-monthly take-home pay.',
     why:{hook:'An offer letter says $55,000. How much of it can you actually spend?',problems:['Turn a yearly salary into take-home pay per paycheck.','See which taxes come out of every paycheck, and why.','Compare what different careers pay early, in the middle and late.'],uses:['Every pay stub lists gross pay, each tax withheld and net pay.','The W-4 you fill out at your first job sets how much federal tax comes out of each check.','Apartment applications often ask for proof of income, such as pay stubs.']}},
