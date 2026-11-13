@@ -46,17 +46,18 @@ const SIM={
   {id:'rate',label:'Average inflation per year',unit:'%',d:2,lvl:'ap',min:0,max:10,get:sim=>shown(sim)?100*rate(sim):null},
   {id:'r72',label:'Years for prices to double at that rate (rule of 72)',unit:'years',d:1,lvl:'ap',min:0,max:null,get:sim=>shown(sim)?72/(100*rate(sim)):null}
  ],
- draw(sim,ctx,vdt,k){const sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3,Y=+sim.p.year;
+ draw(sim,ctx,vdt,k){const stg=(sim.tour&&sim.tour.on)?(sim.tst||1):99,sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3,Y=+sim.p.year;
   ctx.fillStyle=PAL['cv-bg'];ctx.fillRect(0,0,800,450);
   /* two price tags */
   const tag=(x,y,w,h,col,top,mid)=>{ctx.fillStyle=PAL['card'];rr(ctx,x,y,w,h,10);ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=3;rr(ctx,x,y,w,h,10);ctx.stroke();
    txt(ctx,top,x+w/2,y+28*fs,{s:15*fs,w:700,a:'center',c:PAL['cv-soft']});txt(ctx,mid,x+w/2,y+h*0.68,{s:34*fs,w:700,a:'center',c:col});};
   const tw=big?330:240,th=big?150:130;
   tag(30,40,tw,th,PAL['s2'],'In '+Y,$2(sim.p.amt));
-  tag(big?440:300,40,tw,th,PAL['rj'],'In 2026',sh?$2(today(sim)):'?');
+  tag(big?440:300,40,tw,th,PAL['rj'],'In 2026',sh&&stg>=4?$2(today(sim)):'?');if(stg===4){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=3;rr(ctx,(big?440:300)-7,33,tw+14,th+14,14);ctx.stroke();}
   if(!big){txt(ctx,'→',285,40+th/2+10,{s:28,w:700,a:'center',c:PAL['cv-soft']});
-   const G=sim.gutS&&sim.gutS.g;txt(ctx,'Your gut: × '+x2(sim.p.guess)+' = '+$2(sim.p.amt*sim.p.guess),660,80,{s:13,w:700,c:PAL['s4'],a:'center'});
-   if(sh)txt(ctx,'The CPI: × '+mult(sim).toFixed(3),660,106,{s:13,w:700,c:PAL['rj'],a:'center'});}
+   const G=sim.gutS&&sim.gutS.g;if(stg>=99)txt(ctx,'Your gut: × '+x2(sim.p.guess)+' = '+$2(sim.p.amt*sim.p.guess),660,80,{s:13,w:700,c:PAL['s4'],a:'center'});
+   if(sh&&stg>=3)txt(ctx,'The CPI: × '+mult(sim).toFixed(3),660,stg<99?110:106,{s:stg<99?17:13,w:700,c:PAL['rj'],a:'center'});if(stg===3){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(575,88,170,32);}}
+  if(stg<2)return;
   /* the CPI over time */
   const gx=big?60:80,gy=big?230:210,gw=big?700:680,gh=big?190:200,yrs=[1980,1990,2000,2010,2020,2026],val=y=>y===2026?NOW:CPI[y];
   const X=y=>gx+gw*(y-1980)/(46),Yp=v=>gy+gh-gh*v/360;
@@ -64,7 +65,10 @@ const SIM={
   txt(ctx,'CPI (1982–84 = 100)',gx+6,gy+4,{s:12*fs,c:PAL['cv-soft']});
   ctx.strokeStyle=PAL['s2'];ctx.lineWidth=3;ctx.beginPath();yrs.forEach((y,i)=>{const px=X(y),py=Yp(val(y));i?ctx.lineTo(px,py):ctx.moveTo(px,py);});ctx.stroke();
   yrs.forEach(y=>{const on=y===Y||y===2026;ctx.fillStyle=on?PAL['rj']:PAL['s2'];ctx.beginPath();ctx.arc(X(y),Yp(val(y)),on?6:4,0,7);ctx.fill();
-   txt(ctx,String(y),X(y),gy+gh+16*fs,{s:12*fs,a:'center',c:PAL['cv-soft']});if(!big||on)txt(ctx,(+val(y).toFixed(1)).toString(),X(y),Yp(val(y))-10,{s:12*fs,a:'center',w:on?700:400});});},
+   txt(ctx,String(y),X(y),gy+gh+16*fs,{s:12*fs,a:'center',c:PAL['cv-soft']});if(!big||on)txt(ctx,(+val(y).toFixed(1)).toString(),X(y),Yp(val(y))-10,{s:12*fs,a:'center',w:on?700:400});
+   if(on&&stg===2){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(X(y),Yp(val(y)),13,0,7);ctx.stroke();}});
+  if(stg===6){const r=Math.pow(mult(sim),1/(2026-Y))-1;ctx.strokeStyle=PAL['s4'];ctx.lineWidth=2;ctx.setLineDash([6,5]);ctx.beginPath();for(let y=Y;y<=2026;y+=0.5){const v=val(Y)*Math.pow(1+r,y-Y),px=X(y),py=Yp(v);y===Y?ctx.moveTo(px,py):ctx.lineTo(px,py);}ctx.stroke();ctx.setLineDash([]);
+   txt(ctx,'Steady '+(100*r).toFixed(2)+'% a year gives the same trip',gx+20,gy+28,{s:14*fs,w:700,c:PAL['s4']});txt(ctx,mult(sim).toFixed(3)+'^(1/'+(2026-Y)+') − 1 ≈ '+(100*r).toFixed(2)+'%',gx+20,gy+50,{s:14*fs,w:700,c:PAL['s4']});}},
  narrate(sim){const Y=sim.p.year;
   if(!shown(sim))return `The CPI was ${CPI[Y]} in ${Y} and ${NOW} in September 2026. <b>How many times as many dollars does the same thing cost now?</b>`;
   return `Prices are <b>${mult(sim).toFixed(3)} times</b> what they were in ${Y}, so ${$2(sim.p.amt)} then buys what ${$2(today(sim))} buys now. A dollar from ${Y} buys only ${(100/mult(sim)).toFixed(1)}% of what it did.`;},
@@ -98,12 +102,12 @@ const SIM={
   {lvl:'ap',instant:true,q:'Why does the rule of 72 work for growth near 2% to 10%?',choices:['Because 72 is divisible by many numbers and ln 2 ÷ ln(1 + r) ≈ 0.72 ÷ r there','Because the CPI is set to 72','It works for every rate exactly'],correct:0,explain:'Doubling time t = ln 2 ÷ ln(1 + r). For small r, ln(1 + r) is a bit less than r, so 69.3 ÷ (100r) becomes about 72 ÷ (100r) in this range. 72 also divides evenly by 2, 3, 4, 6, 8, 9 and 12.'}
  ],
  tour:[
-  {title:'The token',text:'A $2 drink token from 1990. What would the same drink cost in 2026?',pause:true,setup:sim=>BioLab.setValues(sim,{year:'1990',amt:2,reveal:true})},
-  {title:'The CPI',text:'Every month the Bureau of Labor Statistics prices a basket of goods and services in cities across the country. Its index was 130.7 in 1990 and 336.940 in September 2026.',pause:true},
-  {title:'The ratio',text:'336.940 ÷ 130.7 ≈ 2.578: the same basket costs about 2.58 times as many dollars.',pause:true},
-  {title:'Today’s price',text:'$2 × 2.578 = $5.16. The token still says $2, but it buys only 39% of a drink today.',pause:true},
-  {title:'Recent years',text:'Since 2020 alone, prices rose by 336.940 ÷ 258.811 ≈ 1.302, about 30% since 2020.',pause:true,setup:sim=>BioLab.setValues(sim,{year:'2020',amt:2,reveal:true})},
-  {lvl:'ap',title:'The yearly rate',text:'From 1990 to 2026: 2.578^(1/36) − 1 ≈ 2.67% a year on average. At that rate, prices double about every 27 years.',pause:true,setup:sim=>BioLab.setValues(sim,{year:'1990',amt:2,reveal:true})}
+  {title:'The token',text:'A $2 drink token from 1990. What would the same drink cost in 2026?',pause:true,setup:sim=>{sim.tst=1;BioLab.setValues(sim,{year:'1990',amt:2,reveal:true});}},
+  {title:'The CPI',text:'Every month the Bureau of Labor Statistics prices a basket of goods and services in cities across the country. Its index was 130.7 in 1990 and 336.940 in September 2026.',pause:true,setup:sim=>{sim.tst=2;}},
+  {title:'The ratio',text:'336.940 ÷ 130.7 ≈ 2.578: the same basket costs about 2.58 times as many dollars.',pause:true,setup:sim=>{sim.tst=3;}},
+  {title:'Today’s price',text:'$2 × 2.578 = $5.16. The token still says $2, but it buys only 39% of a drink today.',pause:true,setup:sim=>{sim.tst=4;}},
+  {title:'Recent years',text:'Since 2020 alone, prices rose by 336.940 ÷ 258.811 ≈ 1.302, about 30% since 2020.',pause:true,setup:sim=>{sim.tst=5;BioLab.setValues(sim,{year:'2020',amt:2,reveal:true});}},
+  {lvl:'ap',title:'The yearly rate',text:'From 1990 to 2026: 2.578^(1/36) − 1 ≈ 2.67% a year on average. At that rate, prices double about every 27 years.',pause:true,setup:sim=>{sim.tst=6;BioLab.setValues(sim,{year:'1990',amt:2,reveal:true});}}
  ],
  lab:{bio:'<p><b>Question:</b> How has $20 changed?</p><ol><li>Set the old price to $20.</li><li>Record today’s price for each year: 1980, 1990, 2000, 2010, 2020.</li></ol><p>Ask a parent or grandparent what $20 bought when they were your age, and compare.</p>',
   honors:'<p><b>Question:</b> How much buying power did a dollar lose in each decade?</p><ol><li>Record <b>Buying power a dollar has lost</b> for each year.</li><li>Use the CPI values to find the loss within each decade (for example, 1990 to 2000).</li></ol><p>Which decade lost the most? Look up one event from that decade that pushed prices up.</p>',

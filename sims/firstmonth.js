@@ -66,26 +66,31 @@ const SIM={
   {id:'savePct',label:'Saved as a share of take-home',unit:'%',d:1,lvl:'honors',min:null,max:100,get:sim=>shown(sim)?100*left(sim)/income(sim):null},
   {id:'loanPay',label:'Student loan payment',unit:'dollars',d:2,lvl:'ap',min:0,max:null,get:sim=>sim.p.loan==='avg'?loanPay():0}
  ],
- draw(sim,ctx,vdt,k){const sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3,inc=income(sim),L=lines(sim),T=total(sim);
+ draw(sim,ctx,vdt,k){const stg=(sim.tour&&sim.tour.on)?(sim.tst||1):99,sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3,inc=income(sim),T=total(sim);
+  const S2=['rent'],S3=['rent','groc','epic','reg'],hot=l=>stg===2&&l.id==='rent'||stg===3&&S3.includes(l.id)&&l.id!=='rent',L=lines(sim).filter(l=>stg>=4||stg===2&&S2.includes(l.id)||stg===3&&S3.includes(l.id));
   ctx.fillStyle=PAL['cv-bg'];ctx.fillRect(0,0,800,450);
   txt(ctx,'Take-home pay: '+$2(inc)+' a month',24,32*Math.min(k,1.2),{s:17*fs,w:700});
   const X0=24,X1=big?776:560,W=X1-X0,mx=Math.max(inc,T)*1.04,sc=W/mx,H=34*Math.min(k,1.3),y1=52*Math.min(k,1.3),y2=y1+H+28*fs;
   ctx.fillStyle=PAL['s3'];rr(ctx,X0,y1,inc*sc,H,5);ctx.fill();txt(ctx,'Income',X0+8,y1+H/2+1,{s:13*fs,w:700,c:'#fff',b:'middle'});
-  if(sh){let x=X0;GRP.forEach(([g,col])=>{const v=L.filter(l=>l.grp===g).reduce((s,l)=>s+l.v,0);if(v<=0)return;ctx.fillStyle=PAL[col];ctx.fillRect(x,y2,v*sc,H);x+=v*sc;});
+  if(stg<2){}
+  else if(sh){let x=X0;GRP.forEach(([g,col])=>{const v=L.filter(l=>l.grp===g).reduce((s,l)=>s+l.v,0);if(v<=0)return;ctx.fillStyle=PAL[col];ctx.fillRect(x,y2,v*sc,H);x+=v*sc;});
+   if(stg===2){const v=L[0].v;txt(ctx,Math.round(100*v/inc)+'% of take-home pay',X0+v*sc+10,y2+H/2+1,{s:15*fs,w:700,c:PAL['rj'],b:'middle'});}
    ctx.strokeStyle=PAL['cv-ink'];ctx.setLineDash([4,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(X0+inc*sc,y1-4);ctx.lineTo(X0+inc*sc,y2+H+4);ctx.stroke();ctx.setLineDash([]);
    txt(ctx,'Spending',X0+8,y2+H/2+1,{s:13*fs,w:700,c:'#fff',b:'middle'});}
   else{ctx.fillStyle=PAL['card2'];rr(ctx,X0,y2,W,H,5);ctx.fill();txt(ctx,'Spending: ?',X0+8,y2+H/2+1,{s:13*fs,w:700,c:PAL['cv-soft'],b:'middle'});}
   /* the lines, two columns, biggest first */
   const rows=L.slice().sort((a,b)=>b.v-a.v),lh=(big?24:19)*fs,top=y2+H+(big?26:24)*fs,per=Math.floor((440-top)/lh),cols=big?1:2,colW=big?752:268;
   rows.slice(0,per*cols).forEach((l,i)=>{const c=Math.floor(i/per),r=i%per,x=X0+c*(colW+12),y=top+r*lh,col=(GRP.find(g=>g[0]===l.grp)||[0,'muted'])[1];
-   ctx.fillStyle=PAL[col];rr(ctx,x,y-8*fs,10*fs,10*fs,2);ctx.fill();
+   ctx.fillStyle=PAL[col];rr(ctx,x,y-8*fs,10*fs,10*fs,2);ctx.fill();if(hot(l)){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2;ctx.strokeRect(x-5,y-lh+5*fs,colW+10,lh);}
    let nm=l.name;ctx.font='400 '+(12*fs)+'px '+FONT;const room=colW-16*fs-62*fs;while(nm.length>8&&ctx.measureText(nm).width>room)nm=nm.replace(/…$/,'').slice(0,-1)+'…';txt(ctx,nm,x+16*fs,y+1,{s:12*fs});
    txt(ctx,(sh||l.id!=='groc'||!locked(sim))?$2(l.v):'?',x+colW,y+1,{s:12*fs,w:700,a:'right'});});
-  if(!big){const cx=680;
+  if(!big&&stg>=5){const cx=680;if(stg===5){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(cx-100,70,200,94);}
    if(sh){const v=left(sim);txt(ctx,v>=0?'Left to save':'Short by',cx,90,{s:14,c:PAL['cv-soft'],a:'center'});txt(ctx,$2(Math.abs(v)),cx,124,{s:28,w:700,a:'center',c:v>=0?PAL['s3']:PAL['s1']});
     txt(ctx,'Spending '+$2(T),cx,152,{s:12.5,c:PAL['cv-soft'],a:'center'});}
    else{txt(ctx,locked(sim)?'Convert groceries to':'Lock in your gut',cx,100,{s:13,c:PAL['cv-soft'],a:'center'});txt(ctx,locked(sim)?'a monthly cost first':'to see the totals',cx,120,{s:13,c:PAL['cv-soft'],a:'center'});}
-   const G=sim.gutS&&sim.gutS.g;if(G)txt(ctx,'Your gut: '+G.label,cx,182,{s:12.5,w:700,c:PAL['s4'],a:'center'});}},
+   const G=sim.gutS&&sim.gutS.g;if(G&&stg>=99)txt(ctx,'Your gut: '+G.label,cx,182,{s:12.5,w:700,c:PAL['s4'],a:'center'});
+   if(stg===7){const nd=100*needs(sim)/inc,wt=100*(T-needs(sim))/inc,sv=Math.max(0,100*left(sim)/inc),y0=200;txt(ctx,'Alex vs. 50/30/20',cx,y0,{s:14,w:700,a:'center'});
+    [['Needs',nd,50,'s2'],['Wants',wt,30,'s4'],['Saved',sv,20,'s3']].forEach(([n,v,g,c],i)=>{const y=y0+22+i*44,bx=600,bw=170,sc2=bw/100;txt(ctx,n+': '+Math.round(v)+'%',bx,y+10,{s:12.5,w:700,c:PAL[c]});ctx.fillStyle=PAL['card2'];ctx.fillRect(bx,y+16,bw,12);ctx.fillStyle=PAL[c];ctx.fillRect(bx,y+16,Math.min(bw,v*sc2),12);ctx.strokeStyle=PAL['cv-ink'];ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(bx+g*sc2,y+12);ctx.lineTo(bx+g*sc2,y+32);ctx.stroke();txt(ctx,'guide '+g+'%',bx+bw,y+10,{s:11.5,a:'right',c:PAL['cv-soft']});});}}},
  narrate(sim){const inc=income(sim),T=total(sim),v=left(sim);
   if(!shown(sim))return `Alex takes home ${$2(inc)} a month. Rent alone is ${$(lines(sim)[0].v)}. <b>Is anything left at the end of the month?</b>`;
   const big=lines(sim).slice().sort((a,b)=>b.v-a.v).slice(0,3).map(l=>l.name.split(' (')[0].toLowerCase()+' '+$(l.v)).join(', ');
@@ -120,13 +125,13 @@ const SIM={
   {lvl:'ap',instant:true,q:'Why does $100 a week come to $433.33 a month and not $400?',choices:['Rounding','A year has 52 weeks, so a month averages 52 ÷ 12 ≈ 4.33 weeks','Prices rise during the month'],correct:1,explain:'52 ÷ 12 = 4.333…, so weekly × 4.33 is the monthly rate.'}
  ],
  tour:[
-  {title:'Start with take-home pay',text:'Alex earns $55,000 and takes home $1,850.79 twice a month: $3,701.58 a month to spend.',pause:true,setup:sim=>BioLab.setValues(sim,{home:'alone',groc:100,ski:'yes',loan:'avg',give:0,salary:55000,reveal:true})},
-  {title:'Housing first',text:'A Denver one-bedroom averages about $1,750 a month. That is 47% of Alex’s take-home pay before anything else.',pause:true},
-  {title:'Convert to months',text:'Groceries: $100 × 52 ÷ 12 = $433.33. The ski pass: $675 ÷ 12 = $56.25. Registration: $310 ÷ 12 = $25.83.',pause:true},
-  {title:'Add every line',text:'Car, food, insurance, phone, the $335.95 student loan and the fun: $4,213.86 in all.',pause:true},
-  {title:'The gap',text:'$3,701.58 − $4,213.86 = −$512.28. Alex comes up short every month, and the gap lands on a credit card.',pause:true},
-  {title:'One big change',text:'With a roommate, rent drops to $1,225 and utilities and internet split. That saves $617.50, so Alex has $105.22 left: positive, but only 2.8% of take-home to save.',pause:true,setup:sim=>BioLab.setValues(sim,{home:'room',reveal:true})},
-  {lvl:'honors',title:'Needs, wants, savings',text:'Compare Alex’s needs, wants and savings shares to the 50/30/20 guideline. Which lines would you move?',pause:true}
+  {title:'Start with take-home pay',text:'Alex earns $55,000 and takes home $1,850.79 twice a month: $3,701.58 a month to spend.',pause:true,setup:sim=>{sim.tst=1;BioLab.setValues(sim,{home:'alone',groc:100,ski:'yes',loan:'avg',give:0,salary:55000,reveal:true});}},
+  {title:'Housing first',text:'A Denver one-bedroom averages about $1,750 a month. That is 47% of Alex’s take-home pay before anything else.',pause:true,setup:sim=>{sim.tst=2;}},
+  {title:'Convert to months',text:'Groceries: $100 × 52 ÷ 12 = $433.33. The ski pass: $675 ÷ 12 = $56.25. Registration: $310 ÷ 12 = $25.83.',pause:true,setup:sim=>{sim.tst=3;}},
+  {title:'Add every line',text:'Car, food, insurance, phone, the $335.95 student loan and the fun: $4,213.86 in all.',pause:true,setup:sim=>{sim.tst=4;}},
+  {title:'The gap',text:'$3,701.58 − $4,213.86 = −$512.28. Alex comes up short every month, and the gap lands on a credit card.',pause:true,setup:sim=>{sim.tst=5;}},
+  {title:'One big change',text:'With a roommate, rent drops to $1,225 and utilities and internet split. That saves $617.50, so Alex has $105.22 left: positive, but only 2.8% of take-home to save.',pause:true,setup:sim=>{sim.tst=6;BioLab.setValues(sim,{home:'room',reveal:true});}},
+  {lvl:'honors',title:'Needs, wants, savings',text:'Compare Alex’s needs, wants and savings shares to the 50/30/20 guideline. Which lines would you move?',pause:true,setup:sim=>{sim.tst=7;}}
  ],
  lab:{bio:'<p><b>Question:</b> Which choices close Alex’s gap?</p><ol><li>Turn on <b>Show the totals now</b>.</li><li>Change one thing at a time: roommate, groceries, ski pass, student loan. Record <b>Left over</b> each time.</li><li>Rank the changes by how much they help.</li></ol><p>Write a plan that leaves at least $200 a month to save, and say what Alex gives up.</p>',
   honors:'<p><b>Question:</b> How close is Alex to 50/30/20?</p><ol><li>Record the needs, wants and saved shares for the starting budget.</li><li>Find a set of choices that reaches at least 10% saved.</li></ol><p>Which lines did you call needs? Defend one choice someone could argue the other way.</p>',

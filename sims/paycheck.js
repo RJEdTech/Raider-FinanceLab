@@ -57,15 +57,17 @@ const SIM={
   {id:'marg',label:'Federal rate on your next dollar',unit:'%',d:0,lvl:'ap',min:0,max:40,get:sim=>shown(sim)?100*F.marginal(C(sim).taxable):null},
   {id:'eff',label:'Federal tax as a share of gross pay',unit:'%',d:1,lvl:'ap',min:0,max:40,get:sim=>shown(sim)?100*C(sim).yearTax/yearly(sim):null}
  ],
- draw(sim,ctx,vdt,k){const sh=shown(sim),c=C(sim),fs=Math.min(k,1.5),big=k>1.3;
+ draw(sim,ctx,vdt,k){const stg=(sim.tour&&sim.tour.on)?(sim.tst||1):99,sh=shown(sim),c=C(sim),fs=Math.min(k,1.5),big=k>1.3;
+  const RV=[[],[],['fed'],['fed','st'],['fed','st','ss','med'],['fed','st','ss','med','fam']][stg]||null,HOT=[[],[],['fed'],['st'],['ss','med'],['fam']][stg]||[];
   ctx.fillStyle=PAL['cv-bg'];ctx.fillRect(0,0,800,450);
   txt(ctx,(big?'Gross ':'Gross pay this paycheck: ')+$2(c.gross),24,34*Math.min(k,1.2),{s:17*fs,w:700});
   txt(ctx,(sim.p.job==='part'?$2(sim.p.wage)+'/h × '+sim.p.hours+' h/wk':$(sim.p.salary)+' a year')+', paid '+FREQ[sim.p.freq].l.toLowerCase(),24,58*Math.min(k,1.25),{s:12.5*fs,c:PAL['cv-soft']});
   /* the gross bar, split into what comes out and what you keep */
   const X0=24,X1=776,Y=78*Math.min(k,1.3),H=46*Math.min(k,1.2),W=X1-X0;
   ctx.fillStyle=PAL['line'];rr(ctx,X0,Y,W,H,6);ctx.fill();
-  const rows=ROWS.filter(r=>r[0]!=='k'||c.k>0);let x=X0;
-  if(sh){rows.forEach(([id,,col])=>{const w=W*(c[id]/Math.max(c.gross,1e-9));if(w>0.5){ctx.fillStyle=PAL[col];ctx.fillRect(x,Y,w,H);}x+=w;});
+  const rows=ROWS.filter(r=>(r[0]!=='k'||c.k>0)&&(!RV||RV.includes(r[0])));let x=X0;
+  if(sh&&RV){rows.forEach(([id,,col])=>{const w=W*(c[id]/Math.max(c.gross,1e-9));if(w>0.5){ctx.fillStyle=PAL[col];ctx.fillRect(x,Y,w,H);}x+=w;});}
+  else if(sh){rows.forEach(([id,,col])=>{const w=W*(c[id]/Math.max(c.gross,1e-9));if(w>0.5){ctx.fillStyle=PAL[col];ctx.fillRect(x,Y,w,H);}x+=w;});
    ctx.fillStyle=PAL['s3'];rr(ctx,x,Y,X1-x,H,6);ctx.fill();ctx.fillRect(x,Y,Math.min(8,X1-x),H);
    const lab=(big?'':'Take-home ')+$2(c.net);ctx.font='700 '+(14*fs)+'px '+FONT;const lw=ctx.measureText(lab).width;
    if(lw+16<X1-x)txt(ctx,lab,X1-10,Y+H/2+1,{s:14*fs,w:700,c:'#fff',a:'right',b:'middle'});}
@@ -74,14 +76,15 @@ const SIM={
    txt(ctx,(G?'Your gut: ':'Your guess: ')+sim.p.keep+'% kept',clamp(gx,X0+90,X1-90),Y+H+20*fs,{s:13*fs,w:700,c:PAL['s4'],a:'center'});}
   /* the stub: one line per deduction */
   const T=Y+H+(big?44:40)*fs,lh=(big?27:24)*fs;
-  rows.concat([['net','Take-home pay','s3']]).forEach(([id,name,col],i)=>{const y=T+i*lh;if(y>440)return;
+  rows.concat(RV?[]:[['net','Take-home pay','s3']]).forEach(([id,name,col],i)=>{const y=T+i*lh;if(y>440)return;
+   if(HOT.includes(id)){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(X0-8,y-lh*0.62,560,lh*0.95);}
    ctx.fillStyle=PAL[col];rr(ctx,X0,y-9*fs,14*fs,14*fs,3);ctx.fill();
    txt(ctx,name,X0+22*fs,y+2,{s:13.5*fs,w:id==='net'?700:400});
    const v=sh?(id==='net'?$2(c.net):'− '+$2(c[id])):(id==='net'?'?':'?');
    txt(ctx,v,big?560:420,y+2,{s:13.5*fs,w:700,a:'right',c:id==='net'?PAL['s3']:PAL['cv-ink']});
    if(!big&&sh&&id!=='net'){const pct=c.gross>0?100*c[id]/c.gross:0;txt(ctx,pc1(pct)+' of gross',440,y+2,{s:12*fs,c:PAL['cv-soft']});}});
   if(!sh){const msg=locked(sim)?'Work out your turn to fill in the stub':'Lock in your gut to fill in the stub';txt(ctx,msg,big?560:600,T+2*lh,{s:13*fs,c:PAL['cv-soft'],a:'center'});}
-  else if(!big){txt(ctx,'You keep',640,T+lh*0.6,{s:13*fs,c:PAL['cv-soft'],a:'center'});txt(ctx,pc1(keepPct(sim)),640,T+lh*1.9,{s:30*fs,w:700,c:PAL['s3'],a:'center'});
+  else if(!big&&!RV){if(stg===6){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(560,T-lh*0.4,160,lh*3.9);}txt(ctx,'You keep',640,T+lh*0.6,{s:13*fs,c:PAL['cv-soft'],a:'center'});txt(ctx,pc1(keepPct(sim)),640,T+lh*1.9,{s:30*fs,w:700,c:PAL['s3'],a:'center'});
    txt(ctx,$(c.net*nPer(sim))+' a year',640,T+lh*3,{s:13*fs,c:PAL['cv-soft'],a:'center'});}},
  narrate(sim){const c=C(sim);
   if(!shown(sim))return `Gross pay is ${$2(c.gross)} a paycheck from ${jobLine(sim)}. <b>What share of it reaches your bank account?</b>`;
@@ -118,14 +121,14 @@ const SIM={
   {lvl:'ap',instant:true,q:'On $55,000, the federal rate on the next dollar is 12%. What share of the whole $55,000 goes to federal income tax?',choices:['12%','About 8%','About 3%'],correct:1,explain:'$4,420 ÷ $55,000 ≈ 8.0%. The first $16,100 is untaxed and the next $12,400 is taxed at only 10%, so the average rate is well below the top rate.'}
  ],
  tour:[
-  {title:'Start with gross pay',text:'A $55,000 salary paid twice a month is $55,000 ÷ 24 = $2,291.67 a paycheck. That is gross pay, before anything comes out.',pause:true,setup:sim=>BioLab.setValues(sim,{job:'first',salary:55000,freq:'semi',k401:0,reveal:true}),focus:[0,0,800,130]},
-  {title:'Federal income tax',text:'The first $16,100 of the year is untaxed (the standard deduction). On the other $38,900: 10% of $12,400, then 12% of the rest, $4,420 for the year, or $184.17 a paycheck.',pause:true},
-  {title:'Colorado income tax',text:'Colorado takes a flat 4.4% of the same $38,900: $1,711.60 a year, $71.32 a paycheck.',pause:true},
-  {title:'Social Security and Medicare',text:'These are flat: 6.2% and 1.45% of every dollar, $142.08 and $33.23. Together they are called FICA. Your employer matches them.',pause:true},
-  {title:'Colorado FAMLI',text:'0.44% of pay, $10.08, funds paid family and medical leave for Colorado workers.',pause:true},
-  {title:'What you keep',text:'$2,291.67 − $440.88 = $1,850.79. You keep about 80.8%, not the 70% many people guess.',pause:true},
-  {title:'A part-time job now',text:'At $15.16 an hour for 15 hours a week, you earn $11,825 in a year, under the standard deduction. No income tax: only FICA and FAMLI, so you keep 91.9%.',pause:true,setup:sim=>BioLab.setValues(sim,{job:'part',wage:15.16,hours:15,freq:'biweekly',reveal:true})},
-  {lvl:'honors',title:'Save before tax',text:'Put 5% of $55,000 in a traditional 401(k): $2,750 a year skips income tax now, so your take-home drops by less than you save.',pause:true,setup:sim=>BioLab.setValues(sim,{job:'first',salary:55000,freq:'semi',k401:5,reveal:true})}
+  {title:'Start with gross pay',text:'A $55,000 salary paid twice a month is $55,000 ÷ 24 = $2,291.67 a paycheck. That is gross pay, before anything comes out.',pause:true,setup:sim=>{sim.tst=1;BioLab.setValues(sim,{job:'first',salary:55000,freq:'semi',k401:0,reveal:true});},focus:[0,0,800,130]},
+  {title:'Federal income tax',text:'The first $16,100 of the year is untaxed (the standard deduction). On the other $38,900: 10% of $12,400, then 12% of the rest, $4,420 for the year, or $184.17 a paycheck.',pause:true,setup:sim=>{sim.tst=2;}},
+  {title:'Colorado income tax',text:'Colorado takes a flat 4.4% of the same $38,900: $1,711.60 a year, $71.32 a paycheck.',pause:true,setup:sim=>{sim.tst=3;}},
+  {title:'Social Security and Medicare',text:'These are flat: 6.2% and 1.45% of every dollar, $142.08 and $33.23. Together they are called FICA. Your employer matches them.',pause:true,setup:sim=>{sim.tst=4;}},
+  {title:'Colorado FAMLI',text:'0.44% of pay, $10.08, funds paid family and medical leave for Colorado workers.',pause:true,setup:sim=>{sim.tst=5;}},
+  {title:'What you keep',text:'$2,291.67 − $440.88 = $1,850.79. You keep about 80.8%, not the 70% many people guess.',pause:true,setup:sim=>{sim.tst=6;}},
+  {title:'A part-time job now',text:'At $15.16 an hour for 15 hours a week, you earn $11,825 in a year, under the standard deduction. No income tax: only FICA and FAMLI, so you keep 91.9%.',pause:true,setup:sim=>{sim.tst=7;BioLab.setValues(sim,{job:'part',wage:15.16,hours:15,freq:'biweekly',reveal:true});}},
+  {lvl:'honors',title:'Save before tax',text:'Put 5% of $55,000 in a traditional 401(k): $2,750 a year skips income tax now, so your take-home drops by less than you save.',pause:true,setup:sim=>{sim.tst=8;BioLab.setValues(sim,{job:'first',salary:55000,freq:'semi',k401:5,reveal:true});}}
  ],
  onTourExit(sim){BioLab.setValues(sim,{k401:0,reveal:false});},
  lab:{bio:'<p><b>Question:</b> Does a bigger salary mean you keep a bigger share?</p><ol><li>Turn on <b>Show the whole stub now</b>.</li><li>Record a trial at $30,000, $45,000, $60,000, $90,000 and $120,000.</li><li>For each, write down <b>Share of gross you take home</b>.</li></ol><p>Write one sentence about the pattern, and one about why.</p>',

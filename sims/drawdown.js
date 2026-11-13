@@ -57,20 +57,23 @@ const SIM={
   ctx.strokeStyle=PAL['s2'];ctx.lineWidth=2.5;ctx.beginPath();for(let x=0;x<=70;x+=0.5){const g=100*x/(100-x);const px=ax.X(x),py=ax.Y(Math.min(g,240));x?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();
   if(shown(sim)){ctx.fillStyle=PAL['rj'];ctx.beginPath();ctx.arc(ax.X(dPct(sim)),ax.Y(need(sim)),5,0,7);ctx.fill();}
   legend(ctx,box.L+10,box.T+8,[{label:'Gain needed = d ÷ (1 − d)',color:PAL['s2']},{label:'Same percent as the drop',color:PAL['line'],dash:true}]);},
- draw(sim,ctx,vdt,k){const sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3,A=sim.p.amt,a=after(sim);
+ draw(sim,ctx,vdt,k){const stg=(sim.tour&&sim.tour.on)?(sim.tst||1):99,sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3,A=sim.p.amt,a=after(sim);
   ctx.fillStyle=PAL['cv-bg'];ctx.fillRect(0,0,800,450);
   txt(ctx,sim.p.crash==='custom'?'A '+dPct(sim)+'% drop':CR[sim.p.crash].l+': down '+p1(dPct(sim)),24,32*Math.min(k,1.2),{s:17*fs,w:700});
   const B=370,T=80*Math.min(k,1.1),sc=(B-T)/A,bw=big?150:120,xs=big?[60,320,580]:[60,250,440];
   const bar=(x,v,col,top,bot)=>{ctx.fillStyle=PAL[col];rr(ctx,x,B-v*sc,bw,v*sc,6);ctx.fill();txt(ctx,top,x+bw/2,B-v*sc-10,{s:15*fs,w:700,a:'center'});txt(ctx,bot,x+bw/2,B+20*fs,{s:13*fs,a:'center',c:PAL['cv-soft']});};
   bar(xs[0],A,'s2',$(A),'At the top');
-  bar(xs[1],a,'s1',sh||!locked(sim)?$(a):'?',sim.p.crash==='custom'?'At the bottom':'At the bottom');
+  if(stg>=2)bar(xs[1],a,'s1',sh||!locked(sim)?$(a):'?',sim.p.crash==='custom'?'At the bottom':'At the bottom');
   ctx.strokeStyle=PAL['line'];ctx.setLineDash([5,5]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(xs[0],B-A*sc);ctx.lineTo(xs[2]+bw,B-A*sc);ctx.stroke();ctx.setLineDash([]);
-  if(sh){ctx.fillStyle=PAL['s1'];rr(ctx,xs[2],B-a*sc,bw,a*sc,6);ctx.fill();ctx.fillStyle=PAL['s3'];ctx.fillRect(xs[2],B-A*sc,bw,(A-a)*sc);
+  if(sh&&stg>=2&&!big){txt(ctx,'−'+p1(dPct(sim)),(xs[0]+bw+xs[1])/2,B-(A+a)/2*sc,{s:13,w:700,a:'center',c:PAL['s1']});txt(ctx,'of '+$(A),(xs[0]+bw+xs[1])/2,B-(A+a)/2*sc+16,{s:12,a:'center',c:PAL['s1']});if(stg===2){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(xs[0]+bw+4,B-(A+a)/2*sc-18,xs[1]-xs[0]-bw-8,42);}}
+  if(stg<3){}
+  else if(sh){ctx.fillStyle=PAL['s1'];rr(ctx,xs[2],B-a*sc,bw,a*sc,6);ctx.fill();ctx.fillStyle=PAL['s3'];ctx.fillRect(xs[2],B-A*sc,bw,(A-a)*sc);
    txt(ctx,'+'+p1(need(sim))+' of '+$(a),xs[2]+bw/2,B-A*sc-10,{s:15*fs,w:700,a:'center',c:PAL['s3']});txt(ctx,'Back to even',xs[2]+bw/2,B+20*fs,{s:13*fs,a:'center',c:PAL['cv-soft']});
-   if(!big){txt(ctx,'−'+p1(dPct(sim)),(xs[0]+bw+xs[1])/2,B-(A+a)/2*sc,{s:13,w:700,a:'center',c:PAL['s1']});txt(ctx,'of '+$(A),(xs[0]+bw+xs[1])/2,B-(A+a)/2*sc+16,{s:12,a:'center',c:PAL['s1']});}}
+   if(stg===3){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=3;ctx.strokeRect(xs[2]-4,B-A*sc-30,bw+8,(A-a)*sc+34);}
+   if(stg===4&&!big){const y=432;txt(ctx,'Same '+$(A-a)+' both ways: '+p1(dPct(sim))+' of '+$(A)+', but '+p1(need(sim))+' of '+$(a),24,y,{s:15,w:700,c:PAL['rj']});}}
   else{txt(ctx,'+ ? %',xs[2]+bw/2,B-A*sc-10,{s:15*fs,w:700,a:'center',c:PAL['cv-soft']});txt(ctx,'Back to even',xs[2]+bw/2,B+20*fs,{s:13*fs,a:'center',c:PAL['cv-soft']});}
   const G=sim.gutS&&sim.gutS.g;if(G&&!big)txt(ctx,'Your gut: +'+G.g+'%',xs[2]+bw+12,B-A*sc+20,{s:13,w:700,c:PAL['s4']});
-  if(!big&&sim.p.crash!=='custom')txt(ctx,CR[sim.p.crash].when+'. Back to the old high '+CR[sim.p.crash].back+'.',24,430,{s:12.5,c:PAL['cv-soft']});},
+  if(!big&&sim.p.crash!=='custom'&&stg>=5)txt(ctx,CR[sim.p.crash].when+'. Back to the old high '+CR[sim.p.crash].back+'.',24,430,{s:12.5,c:PAL['cv-soft']});},
  narrate(sim){if(!shown(sim))return `${$(sim.p.amt)} falls ${p1(dPct(sim))}. <b>What percent gain gets it back to ${$(sim.p.amt)}?</b>`;
   return `${$(sim.p.amt)} − ${p1(dPct(sim))} leaves ${$2(after(sim))}. To climb back, that smaller amount must grow by <b>${p1(need(sim))}</b>, because the gain is a percent of ${$(after(sim))}, not of ${$(sim.p.amt)}.`;},
  gut:{better:'lower',controls:['guess'],
@@ -105,12 +108,12 @@ const SIM={
   {lvl:'ap',instant:true,q:'Why can’t one steady rate describe a real recovery?',choices:['Returns change a lot from year to year','The formula is wrong','Markets never recover'],correct:0,explain:'The S&P 500 gained about 23% in 2009 and about 13% in 2010 (price only), then much less in 2011. A steady-rate model is a benchmark, not a forecast.'}
  ],
  tour:[
-  {title:'The top',text:'October 9, 2007: $10,000 in an S&P 500 index fund.',pause:true,setup:sim=>BioLab.setValues(sim,{crash:'2008',amt:10000,r:7,reveal:true})},
-  {title:'The bottom',text:'By March 9, 2009, the index had fallen 56.8%. $10,000 × 0.432 = $4,320.',pause:true},
-  {title:'The climb back',text:'To get back to $10,000, the $4,320 must gain $5,680. That is 5,680 ÷ 4,320 ≈ 131.5%.',pause:true},
-  {title:'Why it’s bigger',text:'The loss is a percent of $10,000. The gain is a percent of $4,320, a smaller number, so it needs a bigger percent.',pause:true},
-  {title:'History',text:'The S&P 500 closed above its 2007 high again in March 2013, about 4 years after the bottom.',pause:true},
-  {title:'A smaller crash',text:'The 2020 drop was 33.9%, which needed a 51.3% gain. It took about 5 months.',pause:true,setup:sim=>BioLab.setValues(sim,{crash:'2020',reveal:true})}
+  {title:'The top',text:'October 9, 2007: $10,000 in an S&P 500 index fund.',pause:true,setup:sim=>{sim.tst=1;BioLab.setValues(sim,{crash:'2008',amt:10000,r:7,reveal:true});}},
+  {title:'The bottom',text:'By March 9, 2009, the index had fallen 56.8%. $10,000 × 0.432 = $4,320.',pause:true,setup:sim=>{sim.tst=2;}},
+  {title:'The climb back',text:'To get back to $10,000, the $4,320 must gain $5,680. That is 5,680 ÷ 4,320 ≈ 131.5%.',pause:true,setup:sim=>{sim.tst=3;}},
+  {title:'Why it’s bigger',text:'The loss is a percent of $10,000. The gain is a percent of $4,320, a smaller number, so it needs a bigger percent.',pause:true,setup:sim=>{sim.tst=4;}},
+  {title:'History',text:'The S&P 500 closed above its 2007 high again in March 2013, about 4 years after the bottom.',pause:true,setup:sim=>{sim.tst=5;}},
+  {title:'A smaller crash',text:'The 2020 drop was 33.9%, which needed a 51.3% gain. It took about 5 months.',pause:true,setup:sim=>{sim.tst=6;BioLab.setValues(sim,{crash:'2020',reveal:true});}}
  ],
  lab:{bio:'<p><b>Question:</b> How does the size of a drop change the climb back?</p><ol><li>Choose <b>Choose your own drop</b> and turn on <b>Show the answer now</b>.</li><li>Record the gain needed for drops of 10%, 20%, 30%, 40%, 50% and 60%.</li></ol><p>Graph it. Why does the curve bend upward?</p>',
   honors:'<p><b>Question:</b> How long did real recoveries take?</p><ol><li>For each real crash, record the drop, the gain needed and <b>What really happened</b>.</li></ol><p>Is the bigger drop always the slower recovery? What else might matter?</p>',

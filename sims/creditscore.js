@@ -54,9 +54,10 @@ const SIM={
   {id:'card1',label:'Student card alone: balance ÷ limit',unit:'%',d:1,lvl:'honors',min:0,max:100,get:sim=>shown(sim)?util(b1(sim),sim.p.L1):null},
   {id:'to10',label:'Payment needed to get under 10%',unit:'dollars',d:2,lvl:'ap',min:0,max:null,get:sim=>shown(sim)?to10(sim):null}
  ],
- draw(sim,ctx,vdt,k){const sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3;
+ draw(sim,ctx,vdt,k){const stg=(sim.tour&&sim.tour.on)?(sim.tst||1):99,sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3;
   ctx.fillStyle=PAL['cv-bg'];ctx.fillRect(0,0,800,450);
-  txt(ctx,'Maya’s credit use: '+$(b1(sim))+' of '+$(sim.p.L1+sim.p.L2)+(sh?' = '+p1(now(sim)):''),24,32*Math.min(k,1.2),{s:16*fs,w:700});
+  const ttl='Maya’s credit use: '+$(b1(sim))+' of '+$(sim.p.L1+sim.p.L2)+(sh&&stg>=2?' = '+p1(now(sim)):'');txt(ctx,ttl,24,32*Math.min(k,1.2),{s:16*fs,w:700});
+  if(stg===2){ctx.font='700 '+(16*fs)+'px '+FONT;ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(16,32*Math.min(k,1.2)-20*fs,ctx.measureText(ttl).width+16,28*fs);}
   const card=(y,name,b,L,col,note)=>{const x=24,w=big?752:470,h=(big?62:56)*Math.min(k,1.2);ctx.fillStyle=PAL['card'];rr(ctx,x,y,w,h,10);ctx.fill();ctx.strokeStyle=PAL['line'];ctx.lineWidth=1;rr(ctx,x,y,w,h,10);ctx.stroke();
    txt(ctx,name,x+14,y+22*fs,{s:14*fs,w:700});txt(ctx,$(b)+' of '+$(L)+(note?' · '+note:''),x+w-14,y+22*fs,{s:13*fs,a:'right',c:PAL['cv-soft']});
    const bx=x+14,bw=w-28,by=y+h-20*fs;ctx.fillStyle=PAL['line'];rr(ctx,bx,by,bw,10*fs,5);ctx.fill();ctx.fillStyle=PAL[col];rr(ctx,bx,by,Math.max(2,bw*Math.min(1,b/L)),10*fs,5);ctx.fill();};
@@ -64,16 +65,18 @@ const SIM={
   card(y0,'Student card',b1(sim),sim.p.L1,util(b1(sim),sim.p.L1)>50?'s1':'s4','opened 1 year ago');
   card(y0+gap,'Old card',0,sim.p.L2,'s3','opened 3 years ago, never used');
   /* the three moves */
+  if(stg>=3){
   const ty=y0+2*gap+(big?30:26)*fs;txt(ctx,'Credit utilization after each move',24,ty,{s:14*fs,w:700});
-  const ms=Object.keys(MOVES),bw=big?752:470,mx=Math.max(100,...ms.map(m=>after(sim,m)));
-  ms.forEach((m,i)=>{const y=ty+(18+i*(big?36:32))*fs,v=after(sim,m),isB=sh&&m===best(sim),G=sim.gutS&&sim.gutS.g;
-   txt(ctx,MOVES[m],24,y+12*fs,{s:12.5*fs,w:isB?700:400});const bx=big?300:250,ww=(24+bw-bx)-60;
+  const ms=Object.keys(MOVES).slice(0,stg===3?1:stg===4?2:3),hotM=stg===3?'pay':stg===4?'open':stg===5?'close':null,bw=big?752:470,mx=Math.max(100,...ms.map(m=>after(sim,m)));
+  ms.forEach((m,i)=>{const y=ty+(18+i*(big?36:32))*fs,v=after(sim,m),isB=sh&&(stg>=99||stg>=5)&&m===best(sim),G=sim.gutS&&sim.gutS.g;
+   txt(ctx,MOVES[m],24,y+12*fs,{s:12.5*fs,w:isB||m===hotM?700:400});if(m===hotM){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(16,y-6*fs,(big?752:470)+16,26*fs);}const bx=big?300:250,ww=(24+bw-bx)-60;
    ctx.fillStyle=PAL['line'];rr(ctx,bx,y,ww,14*fs,4);ctx.fill();
    if(sh){ctx.fillStyle=PAL[v>30?'s1':v>10?'s4':'s3'];rr(ctx,bx,y,Math.max(2,ww*v/mx),14*fs,4);ctx.fill();txt(ctx,p1(v),bx+ww+6,y+12*fs,{s:12.5*fs,w:700});}
    else txt(ctx,'?',bx+ww+6,y+12*fs,{s:12.5*fs,w:700,c:PAL['cv-soft']});
    if(G&&G.move===m&&!big)txt(ctx,'◀ your gut',bx+ww+52,y+12*fs,{s:12,w:700,c:PAL['s4']});});
+  }
   /* FICO's five categories, on the right */
-  if(!big){const cx=650,cy=150,R=78;let a=-Math.PI/2;const tm=TOUCH[(sim.gutS&&sim.gutS.g&&sim.gutS.g.move)||sim.p.move]||{};
+  if(!big&&stg>=6){const cx=650,cy=150,R=78;let a=-Math.PI/2;const tm=TOUCH[stg===6?'pay':(sim.gutS&&sim.gutS.g&&sim.gutS.g.move)||sim.p.move]||{};
    FAC.forEach(([id,name,w,col])=>{const a2=a+2*Math.PI*w/100;ctx.fillStyle=PAL[col];ctx.globalAlpha=atLeast('honors')&&!tm[id]?0.3:0.9;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,a,a2);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
     const mid=(a+a2)/2;txt(ctx,w+'%',cx+Math.cos(mid)*R*0.62,cy+Math.sin(mid)*R*0.62+4,{s:12,w:700,c:'#fff',a:'center'});a=a2;});
    FAC.forEach(([id,name,w,col],i)=>{ctx.fillStyle=PAL[col];rr(ctx,560,250+i*18,10,10,2);ctx.fill();txt(ctx,name,576,259+i*18,{s:12,w:atLeast('honors')&&tm[id]?700:400});});
@@ -110,12 +113,12 @@ const SIM={
   {lvl:'ap',instant:true,q:'People say “keep utilization under 30%.” What does FICO itself say?',choices:['30% is a hard cutoff','Lower utilization is generally better; 30% is a popular rule of thumb, not a FICO cutoff','Utilization does not matter'],correct:1,explain:'FICO says people with the highest scores tend to use only a small share of their credit. The 30% line is a common guideline, not a published rule.'}
  ],
  tour:[
-  {title:'Maya’s cards',text:'Maya, 20, owes $450 on her $500 student card. Her old $1,500 card, opened three years ago, has a $0 balance.',pause:true,setup:sim=>BioLab.setValues(sim,{L1:500,b1:450,L2:1500,pay:300,newL:1000,reveal:true})},
-  {title:'Her utilization',text:'$450 ÷ ($500 + $1,500) = $450 ÷ $2,000 = 22.5% of her credit in use.',pause:true},
-  {title:'Pay down $300',text:'$150 ÷ $2,000 = 7.5%. The top of the fraction shrinks.',pause:true},
-  {title:'Open a new card',text:'$450 ÷ $3,000 = 15%. The bottom grows, but she adds a hard inquiry and a brand-new account.',pause:true},
-  {title:'Close the old card',text:'$450 ÷ $500 = 90%. Closing the unused card takes away $1,500 of credit, so the same debt looks much bigger.',pause:true},
-  {lvl:'honors',title:'What FICO weighs',text:'Payment history 35%, amounts owed 30%, length of history 15%, new credit 10%, credit mix 10%. Paying down touches only amounts owed, in the right direction.',pause:true}
+  {title:'Maya’s cards',text:'Maya, 20, owes $450 on her $500 student card. Her old $1,500 card, opened three years ago, has a $0 balance.',pause:true,setup:sim=>{sim.tst=1;BioLab.setValues(sim,{L1:500,b1:450,L2:1500,pay:300,newL:1000,reveal:true});}},
+  {title:'Her utilization',text:'$450 ÷ ($500 + $1,500) = $450 ÷ $2,000 = 22.5% of her credit in use.',pause:true,setup:sim=>{sim.tst=2;}},
+  {title:'Pay down $300',text:'$150 ÷ $2,000 = 7.5%. The top of the fraction shrinks.',pause:true,setup:sim=>{sim.tst=3;}},
+  {title:'Open a new card',text:'$450 ÷ $3,000 = 15%. The bottom grows, but she adds a hard inquiry and a brand-new account.',pause:true,setup:sim=>{sim.tst=4;}},
+  {title:'Close the old card',text:'$450 ÷ $500 = 90%. Closing the unused card takes away $1,500 of credit, so the same debt looks much bigger.',pause:true,setup:sim=>{sim.tst=5;}},
+  {lvl:'honors',title:'What FICO weighs',text:'Payment history 35%, amounts owed 30%, length of history 15%, new credit 10%, credit mix 10%. Paying down touches only amounts owed, in the right direction.',pause:true,setup:sim=>{sim.tst=6;}}
  ],
  lab:{bio:'<p><b>Question:</b> How does a balance change utilization?</p><ol><li>Turn on <b>Show the results now</b>.</li><li>Record <b>Credit utilization now</b> for student-card balances of $0, $100, $250, $450 and $500.</li></ol><p>Graph it. Is it a straight line? Why?</p>',
   honors:'<p><b>Question:</b> When does closing a card hurt least?</p><ol><li>Record <b>After closing the old card</b> with the old card’s limit at $500, $1,500 and $5,000.</li></ol><p>Explain your results, then say which FICO categories closing a card touches.</p>',

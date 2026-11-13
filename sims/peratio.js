@@ -48,19 +48,22 @@ const SIM={
   {id:'eyA',label:'Netflix earnings yield',unit:'%',d:2,lvl:'honors',min:null,max:null,get:sim=>shown(sim)?100*CO.nflx.eps/sim.p.pa:null},
   {id:'eyB',label:'Other company earnings yield',unit:'%',d:2,lvl:'honors',min:null,max:null,get:sim=>shown(sim)?100*B(sim).eps/sim.p.pb:null}
  ],
- draw(sim,ctx,vdt,k){const sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3;
+ draw(sim,ctx,vdt,k){const stg=(sim.tour&&sim.tour.on)?(sim.tst||1):99,sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3;
+  const hb=(x,y,w,h)=>{ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(x,y,w,h);};
   ctx.fillStyle=PAL['cv-bg'];ctx.fillRect(0,0,800,450);
   txt(ctx,'What you pay for each $1 of yearly earnings',24,32*Math.min(k,1.2),{s:17*fs,w:700});
-  const card=(x,col,name,price,eps,pe)=>{const w=big?370:360,y=56*Math.min(k,1.2),h=big?330:300;ctx.fillStyle=PAL['card'];rr(ctx,x,y,w,h,12);ctx.fill();ctx.strokeStyle=PAL[col];ctx.lineWidth=3;rr(ctx,x,y,w,h,12);ctx.stroke();
+  const card=(x,col,name,price,eps,pe,i)=>{const w=big?370:360,y=56*Math.min(k,1.2),h=big?330:300;ctx.fillStyle=PAL['card'];rr(ctx,x,y,w,h,12);ctx.fill();ctx.strokeStyle=PAL[col];ctx.lineWidth=3;rr(ctx,x,y,w,h,12);ctx.stroke();
    txt(ctx,name,x+w/2,y+34*fs,{s:20*fs,w:700,a:'center'});
-   txt(ctx,'Price: '+$2(price),x+w/2,y+70*fs,{s:15*fs,a:'center'});
-   txt(ctx,'Earnings per share: '+(eps<0?'−':'')+$2(Math.abs(eps)),x+w/2,y+96*fs,{s:15*fs,a:'center',c:eps<0?PAL['s1']:PAL['cv-ink']});
-   if(sh){if(pe===null){txt(ctx,'P/E: not meaningful',x+w/2,y+h*0.62,{s:24*fs,w:700,a:'center',c:PAL['s1']});txt(ctx,'The company lost money in 2025',x+w/2,y+h*0.62+28*fs,{s:13*fs,a:'center',c:PAL['cv-soft']});}
+   txt(ctx,'Price: '+$2(price),x+w/2,y+70*fs,{s:15*fs,a:'center'});if(stg===1)hb(x+20,y+52*fs,w-40,26*fs);
+   if(stg===2)hb(x+20,y+78*fs,w-40,26*fs);if(stg===5&&i<2){txt(ctx,'Revenue grew about '+(i?'2':'16')+'% in 2025',x+w/2,y+126*fs,{s:15*fs,w:700,a:'center',c:PAL['rj']});}
+   if(stg>=2)txt(ctx,'Earnings per share: '+(eps<0?'−':'')+$2(Math.abs(eps)),x+w/2,y+96*fs,{s:15*fs,a:'center',c:eps<0?PAL['s1']:PAL['cv-ink']});
+   if(stg<3){}
+   else if(sh&&(stg>=4||i===0)){if(stg===3&&i===0||stg===4&&i===1)hb(x+20,y+h*0.62-36*fs,w-40,72*fs);if(pe===null){txt(ctx,'P/E: not meaningful',x+w/2,y+h*0.62,{s:24*fs,w:700,a:'center',c:PAL['s1']});txt(ctx,'The company lost money in 2025',x+w/2,y+h*0.62+28*fs,{s:13*fs,a:'center',c:PAL['cv-soft']});}
     else{txt(ctx,'P/E '+f1(pe),x+w/2,y+h*0.62,{s:32*fs,w:700,a:'center',c:PAL[col]});txt(ctx,$2(pe)+' for each $1 earned'+(big?'':' (one dot per $1)'),x+w/2,y+h*0.62+30*fs,{s:14*fs,a:'center',c:PAL['cv-soft']});
      if(!big){const n=Math.min(40,Math.round(pe)),cw=8,cx=x+w/2-Math.min(n,20)*cw/2;for(let i=0;i<n;i++){ctx.fillStyle=PAL[col];ctx.globalAlpha=0.75;ctx.beginPath();ctx.arc(cx+(i%20)*cw+4,y+h*0.85+Math.floor(i/20)*10,3.2,0,7);ctx.fill();}ctx.globalAlpha=1;}}}
    else txt(ctx,'P/E ?',x+w/2,y+h*0.62,{s:32*fs,w:700,a:'center',c:PAL['cv-soft']});};
-  card(24,'s1','Netflix',sim.p.pa,CO.nflx.eps,peA(sim));card(big?406:416,'s2',B(sim).n,sim.p.pb,B(sim).eps,peB(sim));
-  const G=sim.gutS&&sim.gutS.g;if(G&&!big)txt(ctx,'Your gut: '+G.label,400,big?420:385,{s:13,w:700,c:PAL['s4'],a:'center'});
+  card(24,'s1','Netflix',sim.p.pa,CO.nflx.eps,peA(sim),0);card(big?406:416,'s2',B(sim).n,sim.p.pb,B(sim).eps,peB(sim),sim.p.b==='ko'?1:2);
+  const G=sim.gutS&&sim.gutS.g;if(G&&!big&&stg>=99)txt(ctx,'Your gut: '+G.label,400,big?420:385,{s:13,w:700,c:PAL['s4'],a:'center'});
   if(!sh)txt(ctx,locked(sim)?'Work out Netflix’s P/E first':'Lock in your gut to see the P/E ratios',400,420,{s:13*fs,c:PAL['cv-soft'],a:'center'});},
  narrate(sim){if(!shown(sim))return `Netflix costs ${$2(sim.p.pa)} a share and ${B(sim).n} ${$2(sim.p.pb)}. <b>Which one costs less for each dollar the company earns?</b>`;
   const b=peB(sim);if(b===null)return `Netflix’s P/E is <b>${f1(peA(sim))}</b>. ${B(sim).n} lost money in 2025 (EPS −$0.06), so a P/E would be negative and means nothing. You cannot pay “per $1 of earnings” when there are no earnings.`;
@@ -97,12 +100,12 @@ const SIM={
   {lvl:'ap',instant:true,q:'Company X has P/E 35, Company Y has P/E 20. When could X still be the better buy?',choices:['Never','If X’s earnings grow much faster, so its future P/E on today’s price falls','If X’s share price is higher'],correct:1,explain:'P/E uses last year’s earnings. If X’s earnings double, today’s price is only 17.5 times those future earnings. That is why investors also look at growth (the PEG ratio).'}
  ],
  tour:[
-  {title:'Two price tags',text:'Netflix at $90 a share, Coca-Cola at $70. Netflix costs more per share. Does that make it more expensive?',pause:true,setup:sim=>BioLab.setValues(sim,{pa:90,b:'ko',pb:70,reveal:true})},
-  {title:'Earnings per share',text:'In 2025 Netflix earned $10,981.2 million on 4,343.9 million diluted shares: $2.53 a share. Coca-Cola earned $3.04 a share.',pause:true},
-  {title:'Netflix’s P/E',text:'$90 ÷ $2.53 ≈ 35.6. You pay about $35.57 for each $1 Netflix earns in a year.',pause:true},
-  {title:'Coca-Cola’s P/E',text:'$70 ÷ $3.04 ≈ 23.0. Coca-Cola costs less per dollar of earnings, even though it earns more per share.',pause:true},
-  {title:'Why pay more?',text:'Investors pay a higher P/E when they expect earnings to grow. Netflix’s revenue grew about 16% in 2025; Coca-Cola’s grew about 2%. P/E is a starting question, not an answer.',pause:true},
-  {lvl:'honors',title:'No earnings',text:'Intel lost money in 2025 (EPS −$0.06). A negative P/E means nothing; other measures are needed.',pause:true,setup:sim=>BioLab.setValues(sim,{b:'intc',pb:40,reveal:true})}
+  {title:'Two price tags',text:'Netflix at $90 a share, Coca-Cola at $70. Netflix costs more per share. Does that make it more expensive?',pause:true,setup:sim=>{sim.tst=1;BioLab.setValues(sim,{pa:90,b:'ko',pb:70,reveal:true});}},
+  {title:'Earnings per share',text:'In 2025 Netflix earned $10,981.2 million on 4,343.9 million diluted shares: $2.53 a share. Coca-Cola earned $3.04 a share.',pause:true,setup:sim=>{sim.tst=2;}},
+  {title:'Netflix’s P/E',text:'$90 ÷ $2.53 ≈ 35.6. You pay about $35.57 for each $1 Netflix earns in a year.',pause:true,setup:sim=>{sim.tst=3;}},
+  {title:'Coca-Cola’s P/E',text:'$70 ÷ $3.04 ≈ 23.0. Coca-Cola costs less per dollar of earnings, even though it earns more per share.',pause:true,setup:sim=>{sim.tst=4;}},
+  {title:'Why pay more?',text:'Investors pay a higher P/E when they expect earnings to grow. Netflix’s revenue grew about 16% in 2025; Coca-Cola’s grew about 2%. P/E is a starting question, not an answer.',pause:true,setup:sim=>{sim.tst=5;}},
+  {lvl:'honors',title:'No earnings',text:'Intel lost money in 2025 (EPS −$0.06). A negative P/E means nothing; other measures are needed.',pause:true,setup:sim=>{sim.tst=6;BioLab.setValues(sim,{b:'intc',pb:40,reveal:true});}}
  ],
  onTourExit(sim){BioLab.setValues(sim,{b:'ko',pb:70,reveal:false});},
  lab:{bio:'<p><b>Question:</b> How does price change the P/E?</p><ol><li>Turn on <b>Show the P/E ratios now</b>.</li><li>Look up today’s Netflix and Coca-Cola prices and type them in.</li><li>Record both P/E ratios.</li></ol><p>Which costs less per $1 of earnings today? Did it change from the example prices?</p>',

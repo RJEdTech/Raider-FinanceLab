@@ -51,19 +51,22 @@ const SIM={
   {id:'lump',label:'Lump sum on day one: value at the last price',unit:'dollars',d:2,lvl:'honors',min:0,max:null,get:sim=>shown(sim)?lumpShares(sim)*last(sim):null},
   {id:'hm',label:'Harmonic mean of the prices',unit:'dollars',d:2,lvl:'ap',min:0,max:null,get:sim=>shown(sim)?4/P(sim).reduce((a,x)=>a+1/x,0):null}
  ],
- draw(sim,ctx,vdt,k){const sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3,pr=P(sim),sv=shares(sim);
+ draw(sim,ctx,vdt,k){const stg=(sim.tour&&sim.tour.on)?(sim.tst||1):99,sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3,pr=P(sim),sv=shares(sim);
   ctx.fillStyle=PAL['cv-bg'];ctx.fillRect(0,0,800,450);
   txt(ctx,$(D(sim))+' every month, whatever the price',24,32*Math.min(k,1.2),{s:17*fs,w:700});
   const L=big?40:60,R=big?780:600,T=70*Math.min(k,1.2),B=360,mx=Math.max(...pr)*1.15,Y=v=>B-(B-T)*v/mx,cw=(R-L)/4;
   ctx.strokeStyle=PAL['line'];ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(L,B);ctx.lineTo(R,B);ctx.stroke();
   pr.forEach((p,i)=>{const x=L+i*cw+cw*0.18,w=cw*0.64;ctx.fillStyle=PAL['s2'];rr(ctx,x,Y(p),w,B-Y(p),6);ctx.fill();
    txt(ctx,'$'+p,x+w/2,Y(p)-8,{s:14*fs,w:700,a:'center'});txt(ctx,MON[i],x+w/2,B+18*fs,{s:13*fs,a:'center',c:PAL['cv-soft']});
-   txt(ctx,sh?s2(sv[i])+' sh':'? sh',x+w/2,B-16*fs,{s:13*fs,w:700,a:'center',c:'#fff'});});
+   const vis=sh&&(stg>=3||stg===2&&i===0);if(stg>=2)txt(ctx,vis?s2(sv[i])+' sh':'? sh',x+w/2,B-16*fs,{s:13*fs,w:700,a:'center',c:'#fff'});
+   if(stg===2&&i===0||stg===3&&i===2){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=4;rr(ctx,x-4,Y(p)-30*fs,w+8,B-Y(p)+30*fs,8);ctx.stroke();}});
   const hl=(v,col,lab,dy)=>{ctx.strokeStyle=col;ctx.setLineDash([6,5]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(L,Y(v));ctx.lineTo(R,Y(v));ctx.stroke();ctx.setLineDash([]);if(!big)txt(ctx,lab,R+8,Y(v)+dy,{s:12.5,w:700,c:col,b:'middle'});};
   const ap=avgPrice(sim),ac=avgCost(sim),close=Math.abs(Y(ap)-Y(ac))<16;
-  hl(ap,PAL['s4'],'Average price '+$2(ap),close?-8:0);
-  if(sh)hl(ac,PAL['rj'],'Your cost '+$2(ac),close?8:0);
-  if(sh)txt(ctx,'Total: '+s2(tot(sim))+' shares for '+$(inv(sim))+'   ·   '+$(inv(sim))+' ÷ '+s2(tot(sim))+' = '+$2(ac)+' a share',24,big?420:410,{s:13.5*fs,w:700});
+  if(stg>=5)hl(ap,PAL['s4'],'Average price '+$2(ap),close?-8:0);
+  if(sh&&stg>=5)hl(ac,PAL['rj'],'Your cost '+$2(ac),close?8:0);
+  if(stg===1)txt(ctx,$(D(sim))+' × 4 months = '+$(inv(sim))+' invested',24,big?420:410,{s:13.5*fs,w:700});
+  else if(stg<4){}
+  else if(sh){if(stg===4){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(14,(big?420:410)-20*fs,(big?772:600),28*fs);}txt(ctx,'Total: '+s2(tot(sim))+' shares for '+$(inv(sim))+'   ·   '+$(inv(sim))+' ÷ '+s2(tot(sim))+' = '+$2(ac)+' a share',24,big?420:410,{s:13.5*fs,w:700});}
   else txt(ctx,locked(sim)?'Work out your average cost to see the shares':'Lock in your gut to see how many shares each month buys',24,big?420:410,{s:13*fs,c:PAL['cv-soft']});
   const G=sim.gutS&&sim.gutS.g;if(G&&!big)txt(ctx,'Your gut: '+G.who,R+8,T+6,{s:12.5,w:700,c:PAL['s4']});},
  narrate(sim){if(!shown(sim))return `Prices this time: ${P(sim).map(p=>'$'+p).join(', ')}. You spend ${$(D(sim))} each month. <b>Is your cost per share above, equal to or below the average price?</b>`;
@@ -97,13 +100,13 @@ const SIM={
   {lvl:'ap',instant:true,q:'When is the average cost per share exactly equal to the average price?',choices:['When the prices rise','Only when every price is the same','Never'],correct:1,explain:'The AM–HM inequality is an equality only when all the numbers are equal.'}
  ],
  tour:[
-  {title:'The plan',text:'Invest $200 at the start of every month, whatever the price. Four months: $800.',pause:true,setup:sim=>BioLab.setValues(sim,{path:'class',amt:200,reveal:true})},
-  {title:'January',text:'$200 ÷ $200 = 1.00 share.',pause:true},
-  {title:'The cheap month',text:'In March the price is $125, so $200 buys 1.60 shares, the most of any month.',pause:true},
-  {title:'Add them up',text:'1.00 + 1.25 + 1.60 + 1.25 = 5.10 shares for $800.',pause:true},
-  {title:'Average cost',text:'$800 ÷ 5.10 = $156.86 a share, below the average price of $161.25.',pause:true},
-  {title:'Not a guarantee',text:'If prices only fall, you still lose money: $100 at the end is below your $126.08 cost.',pause:true,setup:sim=>BioLab.setValues(sim,{path:'falling',reveal:true})},
-  {lvl:'honors',title:'Lump sum or spread out?',text:'In a steady rise, putting all $800 in on day one ends with more. In a dip and recovery, spreading it out ends with more. Nobody knows ahead of time which one is coming.',pause:true,setup:sim=>BioLab.setValues(sim,{path:'rising',reveal:true})}
+  {title:'The plan',text:'Invest $200 at the start of every month, whatever the price. Four months: $800.',pause:true,setup:sim=>{sim.tst=1;BioLab.setValues(sim,{path:'class',amt:200,reveal:true});}},
+  {title:'January',text:'$200 ÷ $200 = 1.00 share.',pause:true,setup:sim=>{sim.tst=2;}},
+  {title:'The cheap month',text:'In March the price is $125, so $200 buys 1.60 shares, the most of any month.',pause:true,setup:sim=>{sim.tst=3;}},
+  {title:'Add them up',text:'1.00 + 1.25 + 1.60 + 1.25 = 5.10 shares for $800.',pause:true,setup:sim=>{sim.tst=4;}},
+  {title:'Average cost',text:'$800 ÷ 5.10 = $156.86 a share, below the average price of $161.25.',pause:true,setup:sim=>{sim.tst=5;}},
+  {title:'Not a guarantee',text:'If prices only fall, you still lose money: $100 at the end is below your $126.08 cost.',pause:true,setup:sim=>{sim.tst=6;BioLab.setValues(sim,{path:'falling',reveal:true});}},
+  {lvl:'honors',title:'Lump sum or spread out?',text:'In a steady rise, putting all $800 in on day one ends with more. In a dip and recovery, spreading it out ends with more. Nobody knows ahead of time which one is coming.',pause:true,setup:sim=>{sim.tst=7;BioLab.setValues(sim,{path:'rising',reveal:true});}}
  ],
  lab:{bio:'<p><b>Question:</b> Is your cost always below the average price?</p><ol><li>Turn on <b>Show the shares now</b>.</li><li>Record <b>Your average cost per share</b> and <b>Average of the four prices</b> for every price pattern.</li></ol><p>Write one sentence about what you found and why.</p>',
   honors:'<p><b>Question:</b> When does a lump sum beat dollar-cost averaging?</p><ol><li>For each pattern, record <b>Value at the last price</b> and <b>Lump sum on day one</b>.</li></ol><p>Explain the pattern. What would you need to know to always pick the winner?</p>',

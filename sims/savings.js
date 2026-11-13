@@ -55,19 +55,25 @@ const SIM={
   if(!shown(sim)){txt(ctx,'Lock in your gut to see the balances',box.L+box.W/2,box.T+box.H/2,{s:14,c:PAL['muted'],a:'center'});return;}
   [[AVG,PAL['s4']],[sim.p.apy,PAL['s3']]].forEach(([r,c])=>{ctx.strokeStyle=c;ctx.lineWidth=2.5;ctx.beginPath();for(let i=0;i<=Y*12;i++){const v=bal(sim.p.amt,r,i/12,dep(sim));i?ctx.lineTo(ax.X(i/12),ax.Y(v)):ctx.moveTo(ax.X(0),ax.Y(v));}ctx.stroke();});
   legend(ctx,box.L+10,box.T+8,[{label:'High-yield '+sim.p.apy.toFixed(2)+'%',color:PAL['s3']},{label:'Average 0.38%',color:PAL['s4']}]);},
- draw(sim,ctx,vdt,k){const sh=shown(sim),fs=Math.min(k,1.5),big=k>1.3;
+ draw(sim,ctx,vdt,k){const stg=(sim.tour&&sim.tour.on)?(sim.tst||1):99,sh=shown(sim)&&stg>=2,fs=Math.min(k,1.5),big=k>1.3,y1=stg===2;
   ctx.fillStyle=PAL['cv-bg'];ctx.fillRect(0,0,800,450);
   txt(ctx,$(sim.p.amt)+(dep(sim)?' + '+$(dep(sim))+' a month':'')+' for '+sim.p.yrs+' year'+(sim.p.yrs>1?'s':''),24,32*Math.min(k,1.2),{s:17*fs,w:700});
   const acct=(x,col,name,rate,v)=>{const w=big?360:350,h=big?240:220,y=58*Math.min(k,1.2);ctx.fillStyle=PAL['card'];rr(ctx,x,y,w,h,12);ctx.fill();ctx.strokeStyle=PAL[col];ctx.lineWidth=3;rr(ctx,x,y,w,h,12);ctx.stroke();
    txt(ctx,name,x+w/2,y+32*fs,{s:16*fs,w:700,a:'center'});txt(ctx,rate+' APY',x+w/2,y+58*fs,{s:14*fs,a:'center',c:PAL['cv-soft']});
    txt(ctx,sh?$2(v):'?',x+w/2,y+h*0.62,{s:32*fs,w:700,a:'center',c:PAL[col]});
-   if(sh)txt(ctx,'earned '+$2(v-put(sim)),x+w/2,y+h*0.84,{s:14*fs,a:'center',c:PAL['cv-soft']});};
-  acct(24,'s4','Average bank account','0.38%',lo(sim));acct(big?416:426,'s3','High-yield account',sim.p.apy.toFixed(2)+'%',hi(sim));
+   if(sh)txt(ctx,y1?'after 1 year: earned '+$2(v-sim.p.amt):'earned '+$2(v-put(sim)),x+w/2,y+h*0.84,{s:14*fs,a:'center',c:y1?PAL['rj']:PAL['cv-soft'],w:y1?700:400});
+   if(y1){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(x+30,y+h*0.62-38*fs,w-60,h*0.84-h*0.62+50*fs);}};
+  acct(24,'s4','Average bank account','0.38%',y1?bal(sim.p.amt,AVG,1,0):lo(sim));acct(big?416:426,'s3','High-yield account',sim.p.apy.toFixed(2)+'%',y1?bal(sim.p.amt,sim.p.apy,1,0):hi(sim));
   const yb=big?340:318;
-  if(sh){txt(ctx,'The high-yield account earns '+$2(gap(sim))+' more',24,yb+20,{s:16*fs,w:700,c:PAL['s3']});
-   if(atLeast('ap'))txt(ctx,'In today’s dollars (prices up '+sim.p.inf.toFixed(1)+'% a year): '+$2(realHi(sim))+' vs. '+$2(put(sim))+' put in',24,yb+48*fs,{s:13*fs,c:PAL['cv-soft']});}
+  if(stg===3){const n=Math.min(sim.p.yrs,5),bw=(big?752:520)/n;txt(ctx,'Interest the high-yield account earns each year',24,yb+18,{s:14*fs,w:700,c:PAL['s3']});
+   let b=sim.p.amt,mxI=bal(sim.p.amt,sim.p.apy,n,0)*sim.p.apy/100;for(let i=0;i<n;i++){const I=b*sim.p.apy/100,hh=60*fs*I/mxI,x=24+i*bw;ctx.fillStyle=PAL['s3'];ctx.fillRect(x,yb+100*fs-hh,bw*0.7,hh);txt(ctx,'Year '+(i+1)+': '+$2(I),x,yb+118*fs,{s:12.5*fs,w:700});b+=I;}
+   ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(14,yb-2,(big?772:540),126*fs);}
+  else if(stg<4){}
+  else if(sh){if(stg===4){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(14,yb-2,(big?772:520),32*fs);}txt(ctx,'The high-yield account earns '+$2(gap(sim))+' more',24,yb+20,{s:16*fs,w:700,c:PAL['s3']});
+   if(atLeast('ap')&&stg===6){ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.strokeRect(14,yb+30*fs,(big?772:600),26*fs);}
+   if(atLeast('ap')&&(stg>=6))txt(ctx,'In today’s dollars (prices up '+sim.p.inf.toFixed(1)+'% a year): '+$2(realHi(sim))+' vs. '+$2(put(sim))+' put in',24,yb+48*fs,{s:13*fs,c:PAL['cv-soft']});}
   else txt(ctx,locked(sim)?'Work out the high-yield balance to see both accounts':'Lock in your gut to see the balances',24,yb+20,{s:14*fs,c:PAL['cv-soft']});
-  const G=sim.gutS&&sim.gutS.g;if(G&&!big)txt(ctx,'Your gut: '+G.label+' more',776,yb+20,{s:13,w:700,c:PAL['s4'],a:'right'});},
+  const G=sim.gutS&&sim.gutS.g;if(G&&!big&&stg>=99)txt(ctx,'Your gut: '+G.label+' more',776,yb+20,{s:13,w:700,c:PAL['s4'],a:'right'});},
  narrate(sim){if(!shown(sim))return `Same ${$(sim.p.amt)}, two accounts: 0.38% and ${sim.p.apy.toFixed(2)}% a year. <b>How much more does the high-yield account earn in ${sim.p.yrs} year${sim.p.yrs>1?'s':''}?</b>`;
   return `The high-yield account ends at ${$2(hi(sim))} and the average account at ${$2(lo(sim))}: <b>${$2(gap(sim))} more</b> for moving the same money. Each year’s interest earns interest the next year.`+(atLeast('ap')?` After ${sim.p.inf.toFixed(1)}% inflation, the high-yield money buys what ${$2(realHi(sim))} buys today.`:'');},
  gut:{better:'lower',controls:['guess'],
@@ -99,12 +105,12 @@ const SIM={
   {lvl:'ap',instant:true,q:'Your account pays 2% and inflation is 3%. About what is your real rate of return?',choices:['+5%','About −1%','+2%'],correct:1,explain:'Real return ≈ 2% − 3% = −1% a year. Exactly: 1.02 ÷ 1.03 − 1 ≈ −0.97%.'}
  ],
  tour:[
-  {title:'Same money, two accounts',text:'You have $2,000 from a summer job. The average savings account paid 0.38% in 2026; many online banks paid about 4%.',pause:true,setup:sim=>BioLab.setValues(sim,{amt:2000,yrs:3,apy:4,dep:0,inf:3.7,reveal:true})},
-  {title:'Year one',text:'At 4%: $2,000 × 1.04 = $2,080. At 0.38%: $2,007.60.',pause:true},
-  {title:'Interest on interest',text:'Year two earns 4% of $2,080, which is $83.20, more than year one’s $80. After three years: $2,000 × 1.04³ = $2,249.73.',pause:true},
-  {title:'The gap',text:'The average account reaches $2,022.89, so the high-yield account earns $226.84 more for the same money.',pause:true},
-  {title:'Give it time',text:'Leave it 10 years and the gap grows to $883.18: $2,960.49 against $2,077.31.',pause:true,setup:sim=>BioLab.setValues(sim,{yrs:10,reveal:true})},
-  {lvl:'ap',title:'Against inflation',text:'At 3.7% inflation, 10 years of high-yield growth is worth $2,058.62 in today’s dollars. The average account’s balance is worth only $1,444.49.',pause:true}
+  {title:'Same money, two accounts',text:'You have $2,000 from a summer job. The average savings account paid 0.38% in 2026; many online banks paid about 4%.',pause:true,setup:sim=>{sim.tst=1;BioLab.setValues(sim,{amt:2000,yrs:3,apy:4,dep:0,inf:3.7,reveal:true});}},
+  {title:'Year one',text:'At 4%: $2,000 × 1.04 = $2,080. At 0.38%: $2,007.60.',pause:true,setup:sim=>{sim.tst=2;}},
+  {title:'Interest on interest',text:'Year two earns 4% of $2,080, which is $83.20, more than year one’s $80. After three years: $2,000 × 1.04³ = $2,249.73.',pause:true,setup:sim=>{sim.tst=3;}},
+  {title:'The gap',text:'The average account reaches $2,022.89, so the high-yield account earns $226.84 more for the same money.',pause:true,setup:sim=>{sim.tst=4;}},
+  {title:'Give it time',text:'Leave it 10 years and the gap grows to $883.18: $2,960.49 against $2,077.31.',pause:true,setup:sim=>{sim.tst=5;BioLab.setValues(sim,{yrs:10,reveal:true});}},
+  {lvl:'ap',title:'Against inflation',text:'At 3.7% inflation, 10 years of high-yield growth is worth $2,058.62 in today’s dollars. The average account’s balance is worth only $1,444.49.',pause:true,setup:sim=>{sim.tst=6;}}
  ],
  lab:{bio:'<p><b>Question:</b> How does time change the gap?</p><ol><li>Turn on <b>Show the balances now</b>. Keep $2,000 at 4%.</li><li>Record <b>Extra from the high-yield account</b> for 1, 2, 4, 6, 8 and 10 years.</li></ol><p>Does the gap grow by the same amount each year? Explain why not.</p>',
   honors:'<p><b>Question:</b> Which matters more, the rate or adding money?</p><ol><li>Over 5 years, record the high-yield balance with $0, $25, $50 and $100 a month.</li><li>Then keep $0 a month and try 3%, 4% and 5%.</li></ol><p>Which change added more? Use the rule of 72 to explain the rate results.</p>',
