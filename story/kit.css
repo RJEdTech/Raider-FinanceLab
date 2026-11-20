@@ -10,6 +10,8 @@
   --alex:#2d6bd2; --alex-tint:#eef3fc;
   --hl:#C11430;
   --int:#d5481c;            /* interest: what a lender keeps */
+  --keep:#a9d9bb;           /* money that stays yours */
+  --t-ss:#2d6bd2; --t-med:#7a4fd0; --t-fam:#0d8a8a; --t-fed:#d5481c; --t-co:#e2a21b;  /* cool = flat on every dollar, warm = income tax */
   --prin:#2d6bd2;           /* the part of a payment that lowers the debt */
   --head:#232427; --head-fg:#ffffff; --head-sub:#b9b9bf;
   --font:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -22,7 +24,7 @@
     --rj:#d2203f; --rj-ink:#ed516a; --focus:#6ea8ff; --good:#4cc27a; --bad:#ff7a70;
     --stage:#1a1c20; --grid:#2a2d33; --axis:#7b7b84; --track:#2e3138;
     --seed:#a9acb6; --flat:#e9b23a; --comp:#3fb872;
-    --sam:#3fb872; --sam-tint:#182621; --alex:#5d95ee; --alex-tint:#182030; --hl:#ff5d78; --int:#ff7d4f; --prin:#5d95ee;
+    --sam:#3fb872; --sam-tint:#182621; --alex:#5d95ee; --alex-tint:#182030; --hl:#ff5d78; --int:#ff7d4f; --prin:#5d95ee; --keep:#2f6b47; --t-ss:#5d95ee; --t-med:#a587f0; --t-fam:#35b3b3; --t-fed:#ff7d4f; --t-co:#e9b23a;
     --head:#0f1013; --head-fg:#ffffff; --head-sub:#a2a2aa;
   }
 }
@@ -32,7 +34,7 @@
   --rj:#d2203f; --rj-ink:#ed516a; --focus:#6ea8ff; --good:#4cc27a; --bad:#ff7a70;
   --stage:#1a1c20; --grid:#2a2d33; --axis:#7b7b84; --track:#2e3138;
   --seed:#a9acb6; --flat:#e9b23a; --comp:#3fb872;
-  --sam:#3fb872; --sam-tint:#182621; --alex:#5d95ee; --alex-tint:#182030; --hl:#ff5d78; --int:#ff7d4f; --prin:#5d95ee;
+  --sam:#3fb872; --sam-tint:#182621; --alex:#5d95ee; --alex-tint:#182030; --hl:#ff5d78; --int:#ff7d4f; --prin:#5d95ee; --keep:#2f6b47; --t-ss:#5d95ee; --t-med:#a587f0; --t-fam:#35b3b3; --t-fed:#ff7d4f; --t-co:#e9b23a;
   --head:#0f1013; --head-fg:#ffffff; --head-sub:#a2a2aa;
 }
 *{box-sizing:border-box}
@@ -66,6 +68,7 @@ main{max-width:1500px;margin:0 auto;padding:12px 18px 18px;display:flex;flex-dir
 .stage svg text{font-family:var(--font);font-variant-numeric:tabular-nums}
 .stage svg .halo{paint-order:stroke;stroke:var(--stage);stroke-width:4px;stroke-linejoin:round}
 .stage svg .hit{cursor:pointer}
+.stage svg .drag{cursor:ew-resize;touch-action:none}
 .stage svg .hit:hover{fill:var(--fg);fill-opacity:.05}
 
 /* formula strip */
@@ -124,6 +127,14 @@ body.ink-hl{--hl:var(--fg)}
 .choices button:hover{border-color:var(--rj)}
 .choices button[aria-pressed="true"]{border-color:var(--rj);background:var(--rj);color:#fff}
 .locked{margin:8px 0 0;font-size:15px;color:var(--muted)}
+.gutrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px;max-width:640px}
+.gutrow label{font-weight:700;font-size:17px}
+.gutrow output{font:700 22px var(--mono);color:var(--rj-ink);min-width:80px}
+.gutrow input[type=range]{flex:1;min-width:200px;accent-color:var(--rj);height:30px}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.seg button{border:2px solid var(--line);background:var(--card2);border-radius:8px;padding:5px 8px;font-size:14px;font-weight:600}
+.seg button[aria-pressed="true"]{border-color:var(--rj);background:var(--rj);color:#fff}
+.tok.t-ss{border-color:var(--t-ss)} .tok.t-med{border-color:var(--t-med)} .tok.t-fam{border-color:var(--t-fam)} .tok.t-fed{border-color:var(--t-fed)} .tok.t-co{border-color:var(--t-co)} .tok.t-keep{border-color:var(--sam)}
 .cap-nav{display:flex;flex-direction:column;gap:8px;align-items:flex-end;flex:none}
 .cap-nav .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .btn{border:1px solid var(--line);background:var(--card2);border-radius:10px;padding:8px 14px;font-weight:600;font-size:15px}
