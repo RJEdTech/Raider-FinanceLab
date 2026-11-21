@@ -137,7 +137,7 @@ const CHK={view:'R',yr:TY,n:26,one:1,xmaxR:500,rev:3};
 const YR={view:'R',one:0,per:0,xmaxR:60000,std:1};
 const C55=Object.assign({},YR,{yr:55000,n:24});
 const STEPS=[
- {part:-1,title:'Your first paycheck',st:{view:'H'},
+ {part:-1,title:'Your first paycheck',st:{view:'H'},todo:()=>Story.gut!=null,move:'Drag the line, or use the slider.',
   widget:()=>'<div class="gutrow"><label for="g-range">Your guess</label><output id="g-out">'+(Story.gut==null?'?':$(Story.gut))+'</output><input type="range" id="g-range" min="250" max="455" step="1" value="'+(Story.gut==null?455:Story.gut)+'"></div>',
   t:'You worked 30 hours at $15.16 an hour. That is <b>$454.80</b>. Payday comes. <b>Drag the line to what you think lands in your bank account.</b>',
   alt:'$15.16 is Colorado\'s minimum wage in 2026. Pay before anything comes out is called gross pay. What reaches you is net pay, or take-home pay. Go with your gut.'},
@@ -190,6 +190,7 @@ const STEPS=[
   t:'Colorado takes a flat <b>4.4 cents</b> from every dollar past the same line: 38,900 dollars × 4.4¢ = $1,711.60.',
   alt:'Same line, one step instead of several. A tax with a single rate like this is called a flat tax.'},
  {part:1,title:'Every dollar has a story',st:Object.assign({},C55,{rev:5,ylo:70,inset:1,fbar:'dollar',cur:40000}),
+  todo:(S,m)=>m.lo&&m.hi,move:'Drag along the bar. Visit a dollar before the line and one near the end.',
   t:'<b>Slide along the bar.</b> Your first dollars keep 91.91 cents. Your last dollars keep 75.51. Earning more never changes what happened to the dollars before.',
   alt:'This is why a raise cannot shrink your paycheck. New dollars are added on the right and taxed at the last step. Every dollar to their left stays exactly as it was.'},
  {part:1,title:'Spread over the year',st:Object.assign({},C55,{rev:5,ylo:70,inset:1,lev:1}),
@@ -254,7 +255,7 @@ function bindFbar(box,S){if(S.fbar!=='drive')return;
  el('c-n').addEventListener('click',e=>{const b=e.target.closest('[data-n]');if(!b)return;const S=Story.S;S.n=+b.dataset.n;S.cut=0.5;updateDrive();Story.redraw();});
  el('c-lev').addEventListener('click',e=>{const b=e.target.closest('[data-lev]');if(!b)return;Story.dropTweens();Story.tw({lev:+b.dataset.lev},1400);const S=Story.S;const want=+b.dataset.lev;document.querySelectorAll('#c-lev button').forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.lev===want)));});
  updateDrive();}
-function bindWidget(box,S){const r=el('g-range');if(!r)return;r.addEventListener('input',()=>{Story.setGut(+r.value);el('g-out').textContent=$(+r.value);Story.redraw();});}
+function bindWidget(box,S){const r=el('g-range');if(!r)return;r.addEventListener('input',()=>{Story.setGut(+r.value);el('g-out').textContent=$(+r.value);Story.redraw();Story.poke();});}
 
 /* ---------- panels ---------- */
 const ans={q1:null,q2:null,q3:null},tries={q1:0,q2:0,q3:0},story={},q2v={};
@@ -267,11 +268,12 @@ function panelHtml(p){
    '<button type="button" class="btn" id="q2check">Check my formula</button></div><div class="minibox" id="q2pic" hidden></div><div class="fbslot"></div></div>'+
   '<div class="qcard" id="q3"><h2>3. Use the line</h2><p>You earn $10,000 this year from a summer and weekend job. How much federal income tax do you owe on it?</p>'+
    '<div class="opts" data-q="q3"><button type="button" data-v="1000">$1,000</button><button type="button" data-v="0">$0</button><button type="button" data-v="1200">$1,200</button></div><div class="fbslot"></div></div>';
- return '<div class="qcard"><h2>Tell the story of a paycheck</h2><p>Write it for a friend who is about to get their first one.</p><div class="story">'+
+ return Story.orderCard([{view:'G'},{view:'G',gs:6.2,gm:1.45,gf:0.44},{view:'R',yr:TY,n:26,one:1,xmaxR:500,rev:3,net:1},{view:'R',one:0,per:0,xmaxR:60000,std:1,yr:55000,n:24,rev:5,ylo:70},{view:'R',one:0,xmaxR:60000,std:1,yr:55000,n:24,rev:5,ylo:70,lev:1,per:0}])+
+  '<div class="qcard"><h2>Tell the story of a paycheck</h2><p>Write it for a friend who is about to get their first one.</p><div class="story">'+
    '<div><label for="s1">Beginning<small>What is the whole, before anything comes out?</small></label><textarea id="s1" placeholder="Gross pay is…"></textarea></div>'+
    '<div><label for="s2">Middle<small>Which taxes take from every dollar, and which wait for the line?</small></label><textarea id="s2" placeholder="Every dollar loses… Income tax only starts…"></textarea></div>'+
    '<div><label for="s3">End<small>What lands in your account, and why is it not the number on the offer letter?</small></label><textarea id="s3" placeholder="Take-home pay is… because…"></textarea></div></div>'+
-   '<div class="copyrow"><button type="button" class="btn primary" id="copyb">Copy for Canvas</button><span id="copymsg">Copies your guess, your three checks and your story.</span></div><textarea id="copyfallback" hidden readonly aria-label="Your work, to copy"></textarea></div>'+
+   Story.wordsRow(['gross','rate','cents','line','step','withholding','take-home'])+'<div class="copyrow"><button type="button" class="btn primary" id="copyb">Copy for Canvas</button><span id="copymsg">Copies your guess, your three checks and your story.</span></div><textarea id="copyfallback" hidden readonly aria-label="Your work, to copy"></textarea></div>'+
   '<div class="qcard"><h2>Use it</h2><div class="uses">'+
    '<div class="use"><b>Do:</b> fill out the W-4 on your first day carefully, and ask for help if you are not sure. <b>Why:</b> it tells your employer how much federal income tax to take from each check. Colorado uses the federal W-4 unless you file its own DR 0004.</div>'+
    '<div class="use"><b>Do:</b> if federal income tax was taken from a part-time job but you earned less than the standard deduction, file a tax return. <b>Why:</b> income under the standard deduction owes no federal income tax, so the return is how you get the withheld money back. Social Security, Medicare and FAMLI are not refunded this way.</div>'+
@@ -308,13 +310,13 @@ function bindPanel(panel,p){
  el('copyb').addEventListener('click',()=>Story.copy(workText(),el('copymsg'),el('copyfallback')));
 }
 function workText(){const mark=q=>ans[q]==='ok'?'correct'+(tries[q]>1?' (try '+tries[q]+')':''):'not answered yet',g=Story.gut;
- return ['Where did my paycheck go? (Raider FinanceLab)','My guess for the $454.80 paycheck: '+(g==null?'none':$(g))+' (it was $418.01)','Check 1, which dollar loses most: '+mark('q1'),'Check 2, Ana\'s Medicare: '+mark('q2')+(ans.q2==='ok'?'  0.0145 x $600 = $8.70':''),'Check 3, the $16,100 line: '+mark('q3'),'Picture challenges done: '+Object.keys(qdone).length+' of 4','','My story','Beginning: '+(story.s1||''),'Middle: '+(story.s2||''),'End: '+(story.s3||'')].join('\n');}
+ return ['Where did my paycheck go? (Raider FinanceLab)','My guess for the $454.80 paycheck: '+(g==null?'none':$(g))+' (it was $418.01)','Check 1, which dollar loses most: '+mark('q1'),'Check 2, Ana\'s Medicare: '+mark('q2')+(ans.q2==='ok'?'  0.0145 x $600 = $8.70':''),'Check 3, the $16,100 line: '+mark('q3'),'Picture challenges done: '+Object.keys(qdone).length+' of 4',Story.orderLine(),'','My story','Beginning: '+(story.s1||''),'Middle: '+(story.s2||''),'End: '+(story.s3||'')].join('\n');}
 
 function draw(S,W,H,k){return S.view==='H'?drawH(S,W,H,k):S.view==='G'?drawG(S,W,H,k):drawR(S,W,H,k);}
 function onHit(d,S){if(d.tax!=null&&S.fbar==='area'){S.taxsel=+d.tax;if(!S.hl)S.hl='tax';return true;}return false;}
 function onDrag(p,S,W,H,k){
  if(S.view==='H'){const g=geoH(W,H,k),v=Math.round(clamp((p.x-g.x0)/(g.x1-g.x0),250/TC.gross,1)*TC.gross);Story.setGut(Math.min(455,v));const r=el('g-range');if(r){r.value=Story.gut;el('g-out').textContent=$(Story.gut);}return false;}
- if(S.view==='R'&&S.fbar==='dollar'){const G=geo(W,H,k);S.cur=clamp(Math.round((p.x-G.L)/G.pw*S.xmaxR/100)*100,100,S.yr);return true;}
+ if(S.view==='R'&&S.fbar==='dollar'){const G=geo(W,H,k);S.cur=clamp(Math.round((p.x-G.L)/G.pw*S.xmaxR/100)*100,100,S.yr);if(S.cur<STD)Story.mem.lo=1;if(S.cur>STD+12400)Story.mem.hi=1;return true;}
  return false;}
 Story.start({id:'paycheck',lab:'FinanceLab',title:'Where did my paycheck go?',DEF,PARTS,STEPS,draw,fbar:fbarHtml,bindFbar,bindWidget,panel:panelHtml,bindPanel,onHit,onDrag,onGhostEnd,
  onStep:S=>{if(S.fbar==='drive')updateDrive();}});

@@ -18,7 +18,7 @@ function ticksR(lo,hi,n){const raw=(hi-lo)/n,p=Math.pow(10,Math.floor(Math.log10
 
 const DEF={view:'H',fbar:null,hl:null,cur:null,sel:null,
  ylo:0,yhi:1640,xm:3,mon:0,ph:-1,pp:0,inset:0,drop:0,board:0,tA:60,
- nowM:0,xmaxB:14,ymaxB:52,annot:0,cmp:0,tmax:2150,pay:0,apr:24,bal:1500};
+ nowM:0,xmaxB:14,ymaxB:52,annot:0,cmp:0,tmax:2150,pay:0,apr:24,bal:1500,dragPay:0};
 
 /* ---------- view H: the statement ---------- */
 function drawH(s,W,H,k){const gut=Story.gut;let o='';
@@ -147,6 +147,9 @@ function drawB(s,W,H,k){
   if(!narrow){o+=tag('all the red: what waiting cost, '+$(R.I),L+pw*0.3,T+ph*0.2,{s:14*k,c:INT,bc:INT,bw:2,op})+tag('all the blue: the laptop, '+$(s.bal),L+pw*0.3,T+ph*0.2+32*k,{s:14*k,c:PRIN,bc:PRIN,bw:2,op});}
   if(fm>1){const x=L+(fm-1)*sw;o+=line(x,T+ph*0.42,x,y0,'var(--fg)',{dash:'3 4',op})+tag(narrow?'$25 floor':'from month '+fm+' the minimum is stuck at $25',x+8,T+ph*0.42+10*k,{s:12.5*k,op});}
   if(hm>0&&!narrow){const x=L+hm*sw;o+=line(x,T+ph*0.6,x,y0,'var(--fg)',{dash:'3 4',op})+tag('month '+hm+': half the debt is still there',x+8,T+ph*0.6+10*k,{s:12.5*k,op});}}
+ /* the handle: drag the payment up */
+ if(s.dragPay>0.5){const p1=R.pays[0],hy=Y(p1),hx=L+Math.min(N,s.xmaxB)*sw*0.5;o+=line(L,hy,L+Math.min(N,s.xmaxB)*sw,hy,'var(--fg)',{w:3,dash:'2 6'})+rect(hx-58*k,hy-30*k,116*k,26*k,'var(--fg)',{rx:13*k})+text('$'+Math.round(p1)+' a month  ↑',hx,hy-12*k,{a:'middle',s:13.5*k,w:800,c:'var(--stage)'});
+  o+='<rect class="drag" x="'+n1(L)+'" y="'+n1(T)+'" width="'+n1(pw)+'" height="'+n1(ph)+'" style="fill:transparent;cursor:ns-resize"/>';}
  if(s.sel!=null&&s.sel>=1&&s.sel<=N){const p=R.pays[s.sel-1];o+=rect(X(s.sel)-3,Y(p)-3,cw+6,y0-Y(p)+6,'none',{stroke:'var(--fg)',sw:3,rx:3});}
  /* scoreboard and towers */
  const head=done?'Paid off: '+ym(N):'month '+nn;
@@ -222,9 +225,10 @@ const STEPS=[
  {part:1,title:'Read the picture',st:Object.assign({},BM,{annot:1}),
   t:'<b>Width</b> is how long she is in debt. All the blue together is the laptop: $1,500. All the red is what waiting cost: <b>$1,887</b>.',
   alt:'The blue area is the same no matter how she pays. Only two things can change: how wide the picture is, and how much red sits on top.'},
- {part:1,title:'Pay $100 instead',st:Object.assign({},BM,{pay:100,cmp:1,ymaxB:116}),
-  play:async ok=>{await tw({annot:0,cmp:1,ymaxB:116},1300);if(!ok())return;await tw({pay:100},6000,lin);},
-  t:'Same laptop, same card. This time Maya pays a steady <b>$100 a month</b>. Watch the picture squeeze.',
+ {part:1,title:'Pay more than the minimum',st:Object.assign({},BM,{pay:0,cmp:1,ymaxB:116,dragPay:1}),keep:['pay'],
+  play:async ok=>{await tw({annot:0,cmp:1,ymaxB:116},1300);},
+  todo:S=>S.pay>=99.5,move:'Drag the columns up to $100 a month.',auto:async ok=>{await tw({pay:100},6000,lin);},
+  t:'Same laptop, same card. Now Maya decides to pay more than the minimum. <b>You set the payment</b>, and watch the picture squeeze.',
   t2:'<b>19 months instead of 114.</b> The blue is still $1,500. The red fell from $1,887 to $301.',
   alt:'Bigger payments mean bigger blue pieces. The pile empties sooner, so the card gets fewer months to add its slice.'},
  {part:1,title:'One formula, every month',st:{view:'B',xmaxB:21,ymaxB:116,nowM:114,pay:100,fbar:'col',sel:1},
@@ -294,11 +298,12 @@ function panelHtml(p){
    '<button type="button" class="btn" id="q2check">Check my formula</button></div><div class="minibox" id="q2pic" hidden></div><div class="fbslot"></div></div>'+
   '<div class="qcard" id="q3"><h2>3. Where did the money go?</h2><p>In her first year of minimum payments, Maya paid $511. About how much did what she owes drop?</p>'+
    '<div class="opts" data-q="q3"><button type="button" data-v="510">About $510</button><button type="button" data-v="340">About $340</button><button type="button" data-v="170">About $170</button></div><div class="fbslot"></div></div>';
- return '<div class="qcard"><h2>Tell the story of Maya\'s laptop</h2><p>Write it for a friend who has not seen the picture.</p><div class="story">'+
+ return Story.orderCard([{view:'A',xm:3,mon:0},{view:'A',ylo:1300,yhi:1545,inset:1,xm:3,mon:0,ph:0,pp:0.47},{view:'A',ylo:1300,yhi:1545,inset:1,board:1,xm:12,mon:12,tA:390},{view:'B',xmaxB:118,ymaxB:52,nowM:114},{view:'B',xmaxB:118,ymaxB:116,nowM:114,pay:100,cmp:1}])+
+  '<div class="qcard"><h2>Tell the story of Maya\'s laptop</h2><p>Write it for a friend who has not seen the picture.</p><div class="story">'+
    '<div><label for="s1">Beginning<small>What did Maya owe, and what did the card ask for?</small></label><textarea id="s1" placeholder="Maya owed… The card asked for…"></textarea></div>'+
    '<div><label for="s2">Middle<small>What two things happen to the pile every month?</small></label><textarea id="s2" placeholder="Every month the card… then Maya…"></textarea></div>'+
    '<div><label for="s3">End<small>How did paying $100 change the ending, and which part of the formula caused it?</small></label><textarea id="s3" placeholder="At the minimum… At $100 a month… because…"></textarea></div></div>'+
-   '<div class="copyrow"><button type="button" class="btn primary" id="copyb">Copy for Canvas</button><span id="copymsg">Copies your gut pick, your three checks and your story.</span></div><textarea id="copyfallback" hidden readonly aria-label="Your work, to copy"></textarea></div>'+
+   Story.wordsRow(['interest','minimum','payment','pile','rate','month'])+'<div class="copyrow"><button type="button" class="btn primary" id="copyb">Copy for Canvas</button><span id="copymsg">Copies your gut pick, your three checks and your story.</span></div><textarea id="copyfallback" hidden readonly aria-label="Your work, to copy"></textarea></div>'+
   '<div class="qcard"><h2>Use it</h2><div class="uses">'+
    '<div class="use"><b>Do:</b> when you get a credit card statement, find the “Minimum Payment Warning” box and compare the minimum-only line with the 3-year line. <b>Why:</b> the Credit CARD Act of 2009 makes most card statements print both: how long minimums take and what they cost, next to the payment that clears it in 3 years. That box is this picture, for your own card.</div>'+
    '<div class="use"><b>Do:</b> if you carry a balance, pay a fixed amount every month instead of whatever the minimum says, and set it up as an automatic payment. <b>Why:</b> the minimum shrinks as the balance shrinks, so each month knocks off only about 1%. A fixed $100 cleared this $1,500 in 19 months instead of 114. The Consumer Financial Protection Bureau also warns that paying only the minimum keeps you in debt longer and costs more in interest.</div>'+
@@ -335,13 +340,14 @@ function bindPanel(panel,p){
  el('copyb').addEventListener('click',()=>Story.copy(workText(),el('copymsg'),el('copyfallback')));
 }
 function workText(){const mark=q=>ans[q]==='ok'?'correct'+(tries[q]>1?' (try '+tries[q]+')':''):'not answered yet',g=Story.gut;
- return ['Paying off a credit card (Raider FinanceLab)','My gut pick: '+(g?gutName[g]:'none'),'Check 1, what changed: '+mark('q1'),'Check 2, Leo\'s month: '+mark('q2')+(ans.q2==='ok'?'  $800 x (1 + 0.015) - $50 = $762':''),'Check 3, where the money went: '+mark('q3'),'Picture challenges done: '+Object.keys(qdone).length+' of 4','','My story','Beginning: '+(story.s1||''),'Middle: '+(story.s2||''),'End: '+(story.s3||'')].join('\n');}
+ return ['Paying off a credit card (Raider FinanceLab)','My gut pick: '+(g?gutName[g]:'none'),'Check 1, what changed: '+mark('q1'),'Check 2, Leo\'s month: '+mark('q2')+(ans.q2==='ok'?'  $800 x (1 + 0.015) - $50 = $762':''),'Check 3, where the money went: '+mark('q3'),'Picture challenges done: '+Object.keys(qdone).length+' of 4',Story.orderLine(),'','My story','Beginning: '+(story.s1||''),'Middle: '+(story.s2||''),'End: '+(story.s3||'')].join('\n');}
 
 function draw(S,W,H,k){return S.view==='H'?drawH(S,W,H,k):S.view==='A'?drawA(S,W,H,k):drawB(S,W,H,k);}
+function onDrag(p,S,W,H,k){if(S.view==='B'&&S.dragPay>0.5){const narrow=W<700,T=(narrow?94:40)*k,Bm=lerp(36,64,S.annot)*k,y0=H-Bm,ph=H-T-Bm;let v=Math.round((y0-p.y)/ph*S.ymaxB/5)*5;if(v>=97)v=100;S.pay=clamp(v,0,100);}return false;}
 function onHit(d,S){
  if(d.i!=null&&S.fbar==='month'){S.cur=+d.i;if(!S.hl)S.hl='pay';return true;}
  if(d.m!=null){S.sel=+d.m;return S.fbar==='col';}
  return false;}
-Story.start({id:'creditcard',lab:'FinanceLab',title:'Paying off a credit card',DEF,PARTS,STEPS,draw,fbar:fbarHtml,bindFbar,panel:panelHtml,bindPanel,onHit,onGhostEnd,
+Story.start({id:'creditcard',lab:'FinanceLab',title:'Paying off a credit card',DEF,PARTS,STEPS,draw,fbar:fbarHtml,bindFbar,panel:panelHtml,bindPanel,onHit,onDrag,onGhostEnd,
  settle:S=>{S.ph=-1;S.pp=0;},onStep:S=>{if(S.fbar==='drive')updateDrive();}});
 })();

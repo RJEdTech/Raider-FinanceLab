@@ -7,7 +7,7 @@
 const {$,$c,money,clamp,lerp,ease,lin,esc,el,n1,rect,text,line,tag,ticks,person}=Story.h,tw=Story.tw;
 const RA=0.07,GA=1.07;
 const DEF={view:'H',fbar:null,
- xmax:3,ymaxA:132,yrs:0,xk:-1,xp:0,lens:0,legend:0,dbl:0,alex:0,alexYrs:0,hl:null,cur:null,
+ xmax:3,ymaxA:132,yrs:0,xk:-1,xp:0,lens:0,legend:0,dbl:0,alex:0,alexYrs:0,hl:null,cur:null,scrub:0,guessOn:0,
  plan:0,now:22,ymaxB:12000,env:0,annot:0,board:0,towers:0,stack:0,tb:0,tmax:400000,sel:null,r:7,stop:32,mo:200};
 
 /* ---------- the race model ---------- */
@@ -133,6 +133,12 @@ function drawA(s,W,H,k){
    o+=tag('Sam\'s last 10 years: +'+$(B1(45)-B1(35)),X(41)+cw,Y(1760),{a:'end',s:13.5*k,c:'var(--hl)',bc:'var(--hl)',bw:2});}
   o+=tag('Alex puts $100 in here',XC(10),y0+44*k,{a:'middle',s:12.5*k,c:'var(--alex)',bc:'var(--alex)',op:s.alex})+line(XC(10),y0+24*k,XC(10),y0+2,'var(--alex)',{w:2,op:s.alex});
  }
+ /* the student's guess for age 67 */
+ if(s.guessOn>0.01&&Story.mem.g67!=null){const gy=Y(Story.mem.g67);o+=line(XC(36),gy,W-R,gy,'var(--hl)',{w:2.5,dash:'7 5',op:s.guessOn})+tag('your guess at 67: '+$(Story.mem.g67),XC(36)-8,gy+5*k,{a:'end',s:13.5*k,c:'var(--hl)',bc:'var(--hl)',bw:2,op:s.guessOn});}
+ /* the clock: drag it to run the years */
+ if(s.scrub>0.01){const x=XC(s.yrs),hy=y0+34*k;o+=line(x,T,x,y0+20*k,'var(--hl)',{w:2,op:0.55})+rect(x-34*k,hy-13*k,68*k,26*k,'var(--hl)',{rx:13*k})+text('age '+Math.floor(22+s.yrs+1e-6),x,hy+5*k,{a:'middle',s:13.5*k,w:800,c:'#fff'});
+  if(s.yrs<Math.round(s.xmax)-0.01)o+=text('drag  →',x+42*k,hy+5*k,{s:13.5*k,w:800,c:'var(--hl)'});
+  o+='<rect class="drag" x="'+n1(L)+'" y="'+n1(T)+'" width="'+n1(pw)+'" height="'+n1(ph+56*k)+'" style="fill:transparent"/>';}
  /* formula ↔ picture links */
  if(one){
   const x=X(c),yb=Y(B1(c));
@@ -249,13 +255,22 @@ const STEPS=[
   play:async ok=>{const S=Story.S;S.xk=1;S.xp=0;await tw({xp:1},3400,lin);if(!ok())return;S.xk=-1;S.xp=0;S.yrs=2;await tw({lens:1},500);},
   t:'Now 7% of the whole pile. The first $100 earns $7 again. Last year\'s $7 earns <b>49¢ of its own</b>. That thin green slice is growth on growth.',
   alt:'The $7 slice belongs to Sam now, so it earns 7% too. 7% of $7 is 49 cents. It looks like nothing. Keep your eye on the green.'},
- {part:0,title:'Ten years',st:{view:'A',xmax:10,ymaxA:250,yrs:10,legend:1},
-  play:async ok=>{const S=Story.S;await tw({lens:0},200);if(!ok())return;await tw({xmax:10,ymaxA:250,legend:1},1200);if(!ok())return;await tw({yrs:10},3600,lin);},
-  t:'Run it to age 32. Amber is the same $7 every year: $70 so far. Green is growth on growth: <b>$26.72 and speeding up</b>.',
+ {part:0,title:'Ten years',st:{view:'A',xmax:10,ymaxA:250,yrs:2,legend:1,scrub:1},keep:['yrs'],
+  play:async ok=>{await tw({lens:0},200);if(!ok())return;await tw({xmax:10,ymaxA:250,legend:1,scrub:1},1200);},
+  todo:S=>S.yrs>=9.99,move:'Drag the age marker to 32.',auto:async ok=>{await tw({yrs:10},3600,lin);},
+  t:'Your turn to run the clock. Amber is the same $7 every year. Green is growth on growth. <b>Watch which one changes.</b>',
+  t2:'At 32 the $100 is $196.72. Amber has made $70. Green has made <b>$26.72 and is speeding up</b>.',
   alt:'Amber grows in a straight line, because it is always 7% of the same $100. Green curves upward, because it is 7% of a pile that keeps getting bigger.'},
- {part:0,title:'Forty-five years',st:A45,
-  play:async ok=>{const S=Story.S;await tw({xmax:45,ymaxA:2300},1400);if(!ok())return;await tw({yrs:45},7000,lin);},
-  t:'Run it to 67. The $100 is now <b>$2,100</b>. Amber made $315. Green made $1,685. This is called <b>compound growth</b>: growth that is added to the pile and then grows too.',
+ {part:0,title:'Guess first',st:{view:'A',xmax:45,ymaxA:2300,yrs:10,legend:1,guessOn:1},
+  play:async ok=>{const S=Story.S;if(S.yrs<9.99){await tw({yrs:10},900,lin);if(!ok())return;}await tw({xmax:45,ymaxA:2300,scrub:0,guessOn:1},1500);},
+  widget:()=>'<div class="gutrow"><label for="g-range">Your guess at 67</label><output id="g-out">'+(Story.mem.g67==null?'?':$(Story.mem.g67))+'</output><input type="range" id="g-range" min="200" max="2300" step="50" value="'+(Story.mem.g67==null?200:Story.mem.g67)+'"></div>',
+  todo:(S,m)=>m.g67!=null,move:'Set the dashed line with the slider.',
+  t:'Ten years turned $100 into $197. There are 35 more years to go. <b>Where do you think it will be at 67?</b>',
+  alt:'One way to guess: it gained about $97 in the first ten years. Will every ten years add about the same, or more?'},
+ {part:0,title:'Forty-five years',st:{view:'A',xmax:45,ymaxA:2300,yrs:10,legend:1,guessOn:1,scrub:1},keep:['yrs'],
+  todo:S=>S.yrs>=44.99,move:'Drag the age marker all the way to 67.',auto:async ok=>{await tw({yrs:45},6500,lin);},
+  t:'Now run the clock to 67 and watch the green.',
+  t2:()=>{const g=Story.mem.g67;return 'The $100 is now <b>$2,100</b>. Amber made $315. Green made $1,685.'+(g==null?'':' You guessed '+$(g)+(g<1500?'. The growth keeps speeding up, which is hard to picture ahead of time.':'.'))+' This is called <b>compound growth</b>: growth that is added to the pile and then grows too.';},
   alt:'Look at the top slice of the last column. In its final year the pile grew $137, more than the whole $100 Sam put in.'},
  {part:0,title:'The same move, every year',st:Object.assign({},A45,{fbar:'one',cur:45}),
   t:'Every year the pile did one thing: <b>times 1.07</b>. Keep the 1 (all you had), add 0.07 (the new slice). Do that t times. Tap each part of the formula to find it in the picture.',
@@ -358,11 +373,12 @@ function panelHtml(p){
   '<div class="qcard" id="q3"><h2>3. Use the doublings</h2><p>At 7% a pile doubles about every 10 years. $1,000 sits for 30 years. About how much is it then?</p>'+
    '<div class="opts" data-q="q3"><button type="button" data-v="3000">About $3,000</button><button type="button" data-v="8000">About $8,000</button><button type="button" data-v="30000">About $30,000</button></div><div class="minibox" id="q3pic" hidden></div><div class="fbslot"></div></div>';
   }
-  return   '<div class="qcard"><h2>Tell the story of Sam and Alex</h2><p>Write it for a friend who has not seen the picture.</p><div class="story">'+
+  return Story.orderCard([{view:'A',xmax:3,ymaxA:132,yrs:0},{view:'A',xmax:3,ymaxA:132,yrs:2,lens:1},{view:'A',xmax:45,ymaxA:2300,yrs:45},{view:'B',plan:0.3,now:32,ymaxB:54600,board:1},{view:'B',plan:0.3,now:67,ymaxB:54600,board:1,towers:1,stack:1,tb:1}])+
+   '<div class="qcard"><h2>Tell the story of Sam and Alex</h2><p>Write it for a friend who has not seen the picture.</p><div class="story">'+
    '<div><label for="s1">Beginning<small>What did each of them put in?</small></label><textarea id="s1" placeholder="Sam put in… Alex put in…"></textarea></div>'+
    '<div><label for="s2">Middle<small>What happened to every deposit, every year?</small></label><textarea id="s2" placeholder="Each year, every pile…"></textarea></div>'+
    '<div><label for="s3">End<small>Who had more at 67, and which part of the formula caused it?</small></label><textarea id="s3" placeholder="At 67… because…"></textarea></div></div>'+
-   '<div class="copyrow"><button type="button" class="btn primary" id="copyb">Copy for Canvas</button><span id="copymsg">Copies your gut pick, your three checks and your story.</span></div><textarea id="copyfallback" hidden readonly aria-label="Your work, to copy"></textarea></div>'+
+   Story.wordsRow(['deposit','rate','year','compound','pile','slice'])+'<div class="copyrow"><button type="button" class="btn primary" id="copyb">Copy for Canvas</button><span id="copymsg">Copies your gut pick, your three checks and your story.</span></div><textarea id="copyfallback" hidden readonly aria-label="Your work, to copy"></textarea></div>'+
   '<div class="qcard"><h2>Use it</h2><div class="uses">'+
    '<div class="use"><b>Do:</b> at your first job with a retirement plan, save at least enough to get the full employer match. <b>Why:</b> in Vanguard\'s How America Saves report, the most common match is 50 cents for each dollar you save, on the first 6% of your pay. It is money you only get if you put in your own.</div>'+
    '<div class="use"><b>Do:</b> with a summer job, ask an adult about opening a Roth IRA. <b>Why:</b> anyone with a paycheck can put in up to what they earned that year or the yearly limit ($7,500 for 2026, set by the IRS), and the growth comes out tax-free in retirement if you follow the rules.</div>'+
@@ -399,14 +415,16 @@ function restoreCheck(panel){
  if(ans.q1v)pickOpt('q1',ans.q1v,true);if(ans.q3v)pickOpt('q3',ans.q3v,true);
  if(q2v.start!=null){el('i-start').value=q2v.start;el('i-r').value=q2v.r;el('i-t').value=q2v.t;checkQ2(true);}}
 function workText(){const mark=q=>ans[q]==='ok'?'correct'+(tries[q]>1?' (try '+tries[q]+')':''):'not answered yet';
- return ['Start at 22 or 32? (Raider FinanceLab)','My gut pick: '+(Story.gut?gutName[Story.gut]:'none'),'Check 1, which number changed: '+mark('q1'),'Check 2, Maya\'s formula: '+mark('q2')+(ans.q2==='ok'?'  $500 x (1 + 0.07)^50 = $14,729':''),'Check 3, doublings: '+mark('q3'),'Picture challenges done: '+Object.keys(qdone).length+' of 4','','My story','Beginning: '+(story.s1||''),'Middle: '+(story.s2||''),'End: '+(story.s3||'')].join('\n');}
+ return ['Start at 22 or 32? (Raider FinanceLab)','My gut pick: '+(Story.gut?gutName[Story.gut]:'none'),'Check 1, which number changed: '+mark('q1'),'Check 2, Maya\'s formula: '+mark('q2')+(ans.q2==='ok'?'  $500 x (1 + 0.07)^50 = $14,729':''),'Check 3, doublings: '+mark('q3'),'Picture challenges done: '+Object.keys(qdone).length+' of 4',Story.orderLine(),'','My story','Beginning: '+(story.s1||''),'Middle: '+(story.s2||''),'End: '+(story.s3||'')].join('\n');}
 
 
 function draw(S,W,H,k){return S.view==='H'?drawH(S,W,H,k):S.view==='A'?drawA(S,W,H,k):drawB(S,W,H,k);}
+function onDrag(p,S,W,H,k){if(S.view==='A'&&S.scrub>0.5){const L=66*k,pw=W-L-22,sw=pw/(S.xmax+1),hi=Math.round(S.xmax);let y=clamp((p.x-L)/sw-0.5,0,hi);if(y>hi-0.2)y=hi;S.yrs=y;}return false;}
+function bindWidget(box,S){const r=el('g-range');if(!r)return;r.addEventListener('input',()=>{Story.mem.g67=+r.value;el('g-out').textContent=$(+r.value);Story.redraw();Story.poke();});}
 function onHit(d,S){
  if(d.i!=null&&S.fbar==='one'){S.cur=+d.i;if(S.hl==='start'||!S.hl)S.hl='t';return true;}
  if(d.a!=null){S.sel=+d.a;return S.fbar==='col';}
  return false;}
-Story.start({id:'startearly',lab:'FinanceLab',title:'Start at 22 or 32',DEF,PARTS,STEPS,draw,fbar:fbarHtml,bindFbar,panel:panelHtml,bindPanel,onHit,onGhostEnd,
+Story.start({id:'startearly',lab:'FinanceLab',title:'Start at 22 or 32',DEF,PARTS,STEPS,draw,fbar:fbarHtml,bindFbar,bindWidget,panel:panelHtml,bindPanel,onHit,onDrag,onGhostEnd,
  settle:S=>{S.xk=-1;S.xp=0;},onStep:S=>{if(S.fbar==='drive')updateDrive();}});
 })();

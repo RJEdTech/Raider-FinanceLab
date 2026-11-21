@@ -30,7 +30,8 @@ let cfg=null,DEF={},STEPS=[],PARTS=[],FIRST=[],S={};
 let gut=null,idx=0,runId=0,tweens=[],rafOn=false,W=1000,H=520,K=1;
 let GH=null,ghostHold=false,ghostT0=0,ghT=0;
 let altOpen=false,speaking=false,playing=false,voted=null;
-const seen={},SNAP={cur:1,sel:1,xk:1,ph:1,one:1,n:1};
+const mem={},order={pick:[],ok:false,tries:0,n:0};
+const seen={},SNAP={cur:1,sel:1,xk:1,ph:1,one:1,n:1,build:1};
 let svg,stageBox,panel,fbar,cap;
 const full=o=>Object.assign({},DEF,o||{});
 
@@ -59,11 +60,15 @@ function size(){const cw=stageBox.clientWidth||1000;const chrome=el('mast').offs
  W=clamp(cw,540,1080);H=W*hpx/cw;K=cw<520?1.28:cw<760?1.1:1;}
 function render(){if(S.view==='P')return;svg.setAttribute('viewBox','0 0 '+n1(W)+' '+n1(H));svg.innerHTML=cfg.draw(S,W,H,K);}
 function renderFbar(){const html=cfg.fbar?cfg.fbar(S):null;fbar.hidden=!html;fbar.innerHTML=html||'';if(html&&cfg.bindFbar)cfg.bindFbar(fbar,S);}
-function renderPanel(){const p=S.view==='P'?S.panel:null;panel.hidden=!p;stageBox.hidden=!!p;panel.innerHTML=p?cfg.panel(p):'';if(p){if(cfg.bindPanel)cfg.bindPanel(panel,p);markVote();}}
+function renderPanel(){const p=S.view==='P'?S.panel:null;panel.hidden=!p;stageBox.hidden=!!p;if(p)svg.innerHTML='';panel.innerHTML=p?cfg.panel(p):'';if(p){if(cfg.bindPanel)cfg.bindPanel(panel,p);markVote();paintOrder();bindWords();}}
 function plain(html){const d=document.createElement('div');d.innerHTML=html;return d.textContent;}
 const val=v=>typeof v==='function'?v():v;
+/* a step can ask the student to do something first: st.todo(S,mem) says when it is done. Next is never locked; it reads Skip until then. */
+const todoDone=()=>{const st=STEPS[idx];return !st.todo||!!st.todo(S,mem);};
+let wasDone=true;
+function poke(){const d=todoDone();if(d!==wasDone){wasDone=d;updateChrome();size();render();}}
 function updateChrome(){
- const st=STEPS[idx],txt=val(st.t)+(st.t2&&!playing?' '+val(st.t2):'');
+ const st=STEPS[idx],done=todoDone(),txt=val(st.t)+(st.t2&&!playing&&done?' '+val(st.t2):'');wasDone=done;
  el('kpart').textContent=st.part<0?'Start':'Part '+(st.part+1)+' · '+PARTS[st.part];
  const inPart=STEPS.filter(s=>s.part===st.part),pos=inPart.indexOf(st)+1;el('kstep').textContent=st.part<0?'':'step '+pos+' of '+inPart.length;
  el('ktitle').textContent=st.title;el('ctext').innerHTML=txt;
@@ -72,8 +77,9 @@ function updateChrome(){
  if(st.choices){delete ch.dataset.w;ch.hidden=false;ch.innerHTML='<div class="choices">'+st.choices.map(c=>'<button type="button" data-g="'+c[0]+'" aria-pressed="'+(gut===c[0])+'">'+c[1]+'</button>').join('')+'</div>'+(gut?'<p class="locked">'+st.locked+'</p>':'');}
  else if(st.widget){ch.hidden=false;if(ch.dataset.w!==String(idx)){ch.innerHTML=st.widget();ch.dataset.w=String(idx);if(cfg.bindWidget)cfg.bindWidget(ch,S);}}
  else{ch.hidden=true;ch.innerHTML='';delete ch.dataset.w;}
- el('back').disabled=idx===0;el('next').disabled=idx===STEPS.length-1;el('next').textContent=idx===0?'Start':'Next';
- el('replay').hidden=!st.play;
+ el('back').disabled=idx===0;el('next').disabled=idx===STEPS.length-1;el('next').textContent=idx===0?'Start':done?'Next':'Skip';el('next').classList.toggle('primary',done);
+ const mv=el('move');if(mv){mv.hidden=done||playing||!st.move;mv.innerHTML=st.move?'<i></i><b>Your move.</b> '+val(st.move):'';}
+ const rp=el('replay');rp.hidden=!(st.play||(st.auto&&!done));rp.textContent=st.auto&&!done?'Do it for me':'Watch again';
  el('dots').innerHTML=STEPS.map((s,i)=>(i>0&&s.part!==STEPS[i-1].part?'<i class="gap"></i>':'')+'<i class="'+(i===idx?'on':i<idx?'past':'')+'"></i>').join('');
  document.querySelectorAll('#parts button').forEach((b,p)=>{b.setAttribute('aria-current',String(st.part===p));b.classList.toggle('done',st.part>p);});
 }
@@ -85,7 +91,9 @@ async function go(i,replay){
  if(!seen[idx]){seen[idx]=1;ev(nn(idx));}
  try{history.replaceState(null,'','#s'+(idx+1));}catch(e){}
  if(st.play&&fwd&&!RM){
-  let from=full(idx>0?STEPS[idx-1].st:{});if(from.view!==target.view)from=full({view:target.view});from.fbar=target.fbar;from.cur=target.cur;from.sel=null;
+  let from=full(idx>0?STEPS[idx-1].st:{});if(from.view!==target.view)from=full({view:target.view});
+  else if(!replay&&prev===idx-1&&STEPS[prev].keep)STEPS[prev].keep.forEach(key=>{from[key]=S[key];});
+  from.fbar=target.fbar;from.cur=target.cur;from.sel=null;
   S=from;playing=true;paint();
   await st.play(()=>my===runId);if(my!==runId)return;S=target;playing=false;updateChrome();size();render();
  }else{
@@ -103,6 +111,25 @@ function copy(t,msg,fallback){const fall=()=>{fallback.hidden=false;fallback.val
  try{navigator.clipboard.writeText(t).then(()=>{msg.textContent='Copied. Paste it into your Canvas assignment.';},fall);}catch(e){fall();}}
 /* one anonymous question at the end, so teachers and students decide which version is better */
 function voteCard(){return '<div class="qcard"><h2>One question for RJ Ed Tech</h2><p>There are two versions of this tool. Which one helped you understand more?</p><div class="opts" id="vote"><button type="button" data-vote="story">This picture version</button><button type="button" data-vote="current">The other version</button><button type="button" data-vote="only">I only used this one</button></div><div class="fbslot" id="votemsg"></div></div>';}
+/* put the story's own pictures in order */
+const PERM={4:[2,0,3,1],5:[3,0,4,1,2],6:[4,1,5,0,3,2]};
+function orderCard(items){order.n=items.length;const perm=PERM[items.length]||items.map((_,i)=>i);
+ return '<div class="qcard" id="ordercard"><h2>Put the story in order</h2><p>Tap the pictures in the order they happened. Tap one again to take it back.</p><div class="ordergrid">'+
+  perm.map(i=>'<button type="button" class="ocard" data-o="'+i+'" aria-label="Picture '+(perm.indexOf(i)+1)+'"><span class="onum"></span><svg viewBox="0 0 640 350" aria-hidden="true">'+cfg.draw(full(items[i]),640,350,1.15)+'</svg></button>').join('')+
+  '</div><div class="copyrow"><button type="button" class="btn" id="ordercheck">Check the order</button><button type="button" class="btn small" id="orderclear">Start over</button></div><div class="fbslot"></div></div>';}
+function paintOrder(msg){const c=el('ordercard');if(!c)return;c.querySelectorAll('.ocard').forEach(b=>{const p=order.pick.indexOf(+b.dataset.o);b.querySelector('.onum').textContent=p<0?'':String(p+1);b.classList.toggle('picked',p>=0);b.classList.toggle('right',order.ok);b.classList.remove('wrong');});
+ if(order.ok)c.querySelector('.fbslot').innerHTML='<p class="fb ok" role="status">That is the story, in order.</p>';else if(!msg)c.querySelector('.fbslot').innerHTML='';}
+function orderClick(e){const c=el('ordercard');if(!c||order.ok)return;const b=e.target.closest('.ocard');
+ if(b){const i=+b.dataset.o,p=order.pick.indexOf(i);if(p>=0)order.pick.splice(p,1);else order.pick.push(i);paintOrder();return;}
+ if(e.target.closest('#orderclear')){order.pick=[];paintOrder();return;}
+ if(e.target.closest('#ordercheck')){if(order.pick.length<order.n){c.querySelector('.fbslot').innerHTML='<p class="fb no" role="status">Number every picture first.</p>';return;}
+  order.tries++;const bad=order.pick.filter((v,j)=>v!==j);if(!bad.length){order.ok=true;ev('order-right');paintOrder();return;}
+  paintOrder(true);c.querySelectorAll('.ocard').forEach(x=>{const j=order.pick.indexOf(+x.dataset.o);x.classList.toggle('wrong',order.pick[j]!==j);});
+  c.querySelector('.fbslot').innerHTML='<p class="fb no" role="status">The red ones are out of place. Ask yourself what had to happen first. Tap them to take them back, then try again.</p>';}}
+const orderLine=()=>'Story put in order: '+(order.ok?'correct'+(order.tries>1?' (try '+order.tries+')':''):'not done yet');
+function wordsRow(list){return '<div class="words" id="words"><b>Words to use:</b> '+list.map(w=>'<span data-w="'+w+'">'+w+'</span>').join(' ')+'</div>';}
+function bindWords(){const box=el('words');if(!box)return;const upd=()=>{const t=Array.prototype.map.call(panel.querySelectorAll('textarea:not([readonly])'),x=>x.value).join(' ').toLowerCase();box.querySelectorAll('span').forEach(s=>s.classList.toggle('used',new RegExp('\\b'+s.dataset.w.toLowerCase()).test(t)));};
+ panel.querySelectorAll('textarea:not([readonly])').forEach(x=>x.addEventListener('input',upd));upd();}
 function markVote(){const v=el('vote');if(!v||!voted)return;v.querySelectorAll('button').forEach(b=>b.classList.toggle('right',b.dataset.vote===voted));el('votemsg').innerHTML='<p class="fb ok">Thanks. Your answer is counted with no name attached.</p>';}
 
 function start(c){
@@ -110,19 +137,19 @@ function start(c){
  svg=el('stage');stageBox=el('stagebox');panel=el('panel');fbar=el('fbar');cap=el('cap');
  el('next').addEventListener('click',()=>go(idx+1));
  el('back').addEventListener('click',()=>go(idx-1));
- el('replay').addEventListener('click',()=>go(idx,true));
+ el('replay').addEventListener('click',async()=>{const st=STEPS[idx];if(st.auto&&!todoDone()){cancelAll();const my=runId;await st.auto(()=>my===runId);if(my===runId){poke();render();}}else go(idx,true);});
  el('altb').addEventListener('click',()=>{altOpen=!altOpen;if(altOpen)ev(nn(idx),'confused','-story');updateChrome();size();render();});
  el('readb').addEventListener('click',speak);if(!window.speechSynthesis)el('readb').hidden=true;
  el('choices').addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(!b)return;gut=b.dataset.g;updateChrome();size();render();});
  el('parts').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(b)go(FIRST[+b.dataset.p]);});
- fbar.addEventListener('click',e=>{const b=e.target.closest('[data-hl]');if(!b)return;S.hl=S.hl===b.dataset.hl?null:b.dataset.hl;renderFbar();render();});
- svg.addEventListener('click',e=>{const t=e.target.closest('.hit');if(!t||!cfg.onHit)return;if(cfg.onHit(t.dataset,S))renderFbar();render();});
+ fbar.addEventListener('click',e=>{const b=e.target.closest('[data-hl]');if(!b)return;S.hl=S.hl===b.dataset.hl?null:b.dataset.hl;renderFbar();render();poke();});
+ svg.addEventListener('click',e=>{const t=e.target.closest('.hit');if(!t||!cfg.onHit)return;if(cfg.onHit(t.dataset,S))renderFbar();render();poke();});
  let dragging=false;const pt=e=>{const r=svg.getBoundingClientRect();return {x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H};};
  svg.addEventListener('pointerdown',e=>{if(!cfg.onDrag||!e.target.closest('.drag'))return;dragging=true;try{svg.setPointerCapture(e.pointerId);}catch(_){}
-  if(cfg.onDrag(pt(e),S,W,H,K))renderFbar();render();e.preventDefault();});
- svg.addEventListener('pointermove',e=>{if(!dragging)return;if(cfg.onDrag(pt(e),S,W,H,K))renderFbar();render();});
+  cancelAll();if(cfg.onDrag(pt(e),S,W,H,K,mem,'start'))renderFbar();render();poke();e.preventDefault();});
+ svg.addEventListener('pointermove',e=>{if(!dragging)return;if(cfg.onDrag(pt(e),S,W,H,K,mem,'move'))renderFbar();render();poke();});
  ['pointerup','pointercancel','lostpointercapture'].forEach(n=>svg.addEventListener(n,()=>{dragging=false;}));
- panel.addEventListener('click',e=>{const b=e.target.closest('[data-vote]');if(!b)return;if(!voted)ev('vote-'+b.dataset.vote);voted=b.dataset.vote;markVote();});
+ panel.addEventListener('click',e=>{orderClick(e);const b=e.target.closest('[data-vote]');if(!b)return;if(!voted)ev('vote-'+b.dataset.vote);voted=b.dataset.vote;markVote();});
  document.addEventListener('keydown',e=>{const tg=e.target.tagName;if(tg==='INPUT'||tg==='TEXTAREA'||e.altKey||e.ctrlKey||e.metaKey)return;
   if(e.key==='ArrowRight'||e.key==='PageDown'){e.preventDefault();go(idx+1);}else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(idx-1);}});
  let rz=0;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{size();render();},60);});
@@ -132,7 +159,7 @@ function start(c){
  paint();if(cfg.onStep)cfg.onStep(S,idx);
 }
 return {h:{$,$c,money,clamp,lerp,ease,lin,esc,el,n1,rect,text,line,tag,ticks,person,RM},
- start,tw,go,full,ghost,dropTweens,copy,voteCard,ev,
+ start,tw,go,full,ghost,dropTweens,copy,voteCard,orderCard,orderLine,wordsRow,poke,mem,ev,
  redraw:()=>render(),setGut:v=>{gut=v;},refbar:()=>renderFbar(),rechrome:()=>{updateChrome();size();render();},
  get S(){return S;},get gut(){return gut;},get idx(){return idx;},get n(){return STEPS.length;},
  get gh(){const op=ghostOp();return GH&&op>0?{d:GH,op:op}:null;}};
