@@ -104,9 +104,28 @@ async function go(i,replay){
  }
  if(cfg.onStep)cfg.onStep(S,idx);
 }
+/* Read aloud uses only a natural-sounding voice (Raider Labs rule, Nov 18, 2026: robotic voices put students off).
+   With no natural voice in this browser, the button shows how to use Microsoft Edge's own Read aloud instead. */
+const RLV={v:null,
+ pick(){try{const vs=speechSynthesis.getVoices()||[],en=vs.filter(x=>/^en(-|_)?US/i.test(x.lang)),pool=en.length?en:vs.filter(x=>/^en/i.test(x.lang));
+   this.v=pool.find(x=>/natural|online|neural|premium|enhanced/i.test(x.name))||null;}catch(e){this.v=null;}return this.v;},
+ get(){return this.v||this.pick();},
+ how(){let d=document.getElementById('rlv-how');if(!d){d=document.createElement('dialog');d.id='rlv-how';d.setAttribute('aria-labelledby','rlv-h');
+   d.style.cssText='max-width:min(540px,92vw);border:0;border-radius:14px;padding:20px 24px;font:16px/1.55 "Segoe UI",system-ui,sans-serif;color:#1c1c1f;background:#fff';
+   const edge=/Edg\//.test(navigator.userAgent);
+   const steps=[[!edge,'Open this page in Microsoft Edge','Edge has natural-sounding voices built in. Copy the link from the address bar and paste it into Edge.'],
+    [1,'Select the words you want to hear','Drag across the text, then right-click it and choose <b>Read aloud selection</b>. To hear the whole page, press <b>Ctrl + Shift + U</b>.'],
+    [1,'Pick a natural voice','In the Read aloud bar at the top, click <b>Voice options</b> and choose a voice with <b>Natural</b> in its name.'],
+    [1,'Want fewer distractions? Use Immersive Reader','Select the text, right-click, and choose <b>Open in Immersive Reader</b>.']].filter(s=>s[0]);
+   d.innerHTML='<h2 id="rlv-h" style="margin:0 0 6px;font-size:20px">Hear it read aloud in Microsoft Edge</h2><p style="margin:0 0 8px">'+(edge?'Edge’s natural voices haven’t loaded yet. Wait a few seconds and try again, or use Edge’s own Read aloud:':'This browser doesn’t have a natural-sounding voice, so use Edge’s Read aloud.')+'</p><ol style="padding-left:22px;margin:8px 0 14px">'+
+    steps.map(s=>'<li style="margin:0 0 10px"><b>'+s[1]+'</b><br>'+s[2]+'</li>').join('')+'</ol><button type="button" style="font:inherit;padding:8px 16px;border-radius:9px;border:1px solid #ccc;background:#f3f3f1;cursor:pointer">Got it</button>';
+   d.querySelector('button').addEventListener('click',()=>d.close());d.addEventListener('click',e=>{if(e.target===d)d.close();});document.body.appendChild(d);}
+  if(d.showModal)d.showModal();else d.setAttribute('open','');}};
+if('speechSynthesis' in window){RLV.pick();try{speechSynthesis.addEventListener('voiceschanged',()=>RLV.pick());}catch(e){}}
 function stopSpeak(){if(speaking&&window.speechSynthesis)speechSynthesis.cancel();speaking=false;const b=el('readb');if(b)b.textContent='Read aloud';}
 function speak(){if(!window.speechSynthesis)return;if(speaking){stopSpeak();return;}const st=STEPS[idx],txt=plain(val(st.t)+(st.t2?' '+val(st.t2):''))+(altOpen?' '+plain(val(st.alt)):'');
- try{const u=new SpeechSynthesisUtterance(st.title+'. '+txt);u.rate=0.95;u.onend=()=>{speaking=false;el('readb').textContent='Read aloud';};speechSynthesis.speak(u);speaking=true;el('readb').textContent='Stop reading';}catch(e){}}
+ const v=RLV.get();if(!v){RLV.how();return;}
+ try{const u=new SpeechSynthesisUtterance(st.title+'. '+txt);u.voice=v;u.lang=v.lang;u.rate=0.95;u.onend=()=>{speaking=false;el('readb').textContent='Read aloud';};speechSynthesis.speak(u);speaking=true;el('readb').textContent='Stop reading';}catch(e){}}
 function copy(t,msg,fallback){const fall=()=>{fallback.hidden=false;fallback.value=t;fallback.focus();fallback.select();msg.textContent='Select all of the box below and copy it.';};
  try{navigator.clipboard.writeText(t).then(()=>{msg.textContent='Copied. Paste it into your Canvas assignment.';},fall);}catch(e){fall();}}
 /* one anonymous question at the end, so teachers and students decide which version is better */
