@@ -71,8 +71,8 @@ function drawD(s,W,H,k){
   LA.items.forEach(it=>{const x=X(it.x),w=X(it.x+it.w)-x;if(it.p>s.h){up+=(it.p-s.h)*it.w;o+=rect(x+1,Y(it.p)+1,w-2,y-Y(it.p)-1,'var(--fg)',{op:0.38*s.bal});}else if(it.p<s.h){dn+=(s.h-it.p)*it.w;o+=rect(x+1,y,w-2,Y(it.p)-y,'var(--card)',{stroke:'var(--fg)',sw:1.5,dash:'4 4',op:s.bal});}});
   const ok=Math.abs(up-dn)<0.6;
   o+=line(L,y,PR,y,'var(--rj)',{w:3.5,op:s.bal})+rect(PR-100*k,y-14*k,100*k,28*k,'var(--rj)',{rx:14*k,op:s.bal})+text('⇕ '+$c(s.h),PR-50*k,y+5*k,{a:'middle',s:13.5*k,w:800,c:'#fff',op:s.bal});
-  const rx0=X(1.15);o+=tag('above the line: '+$c(up),rx0,T+14*k,{s:13.5*k,bw:2,bc:'var(--fg)',op:s.bal})+tag('gaps below it: '+$c(dn),rx0+200*k,T+14*k,{s:13.5*k,bw:1.5,bc:'var(--fg)',op:s.bal});
-  if(ok)o+=tag('balanced',rx0+390*k,T+14*k,{s:13.5*k,c:'var(--good)',bc:'var(--good)',bw:2,op:s.bal});
+  const rx0=narrow?L+4:X(1.15),fs=(narrow?11.5:13.5)*k,gx=(narrow?150:200)*k;o+=tag('above the line: '+$c(up),rx0,T+14*k,{s:fs,bw:2,bc:'var(--fg)',op:s.bal})+tag('gaps below it: '+$c(dn),rx0+gx,T+14*k,{s:fs,bw:1.5,bc:'var(--fg)',op:s.bal});
+  if(ok)o+=tag('balanced',narrow?rx0:rx0+390*k,T+(narrow?40:14)*k,{s:13.5*k,c:'var(--good)',bc:'var(--good)',bw:2,op:s.bal});
   o+='<rect class="drag" x="'+n1(L)+'" y="'+n1(T)+'" width="'+n1(pw)+'" height="'+n1(ph)+'" style="fill:transparent;cursor:ns-resize"/>';}
  if(s.lev>0.6&&full){const y=Y(m.avgC);o+=tag('average cost: '+$c(m.avgC)+' a share',PR-8,y+30*k,{a:'end',s:13.5*k,c:'var(--rj-ink)',bc:'var(--rj)',bw:2,op:(s.lev-0.6)/0.4*(1-s.val)});}
  /* today's price: what the shares are worth now */

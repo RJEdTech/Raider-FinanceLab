@@ -215,7 +215,7 @@ a{color:var(--rj-ink)}
   .drive{grid-template-columns:1fr}
   .quests{grid-template-columns:repeat(2,minmax(0,1fr))}
   .story,.uses{grid-template-columns:1fr}
-  .letters{margin-left:0;width:100%}
+  .letters{margin-left:0;width:100%;white-space:normal}
   .say{font-size:17.5px}
   .cap h1{font-size:20px}
   .parts{margin-left:0}
