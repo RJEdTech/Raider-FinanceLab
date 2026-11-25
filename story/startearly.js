@@ -236,7 +236,7 @@ function miniA(start,r,t,dbl){const W=520,H=190,L=10,T=26,Bm=22,pw=W-20,ph=H-T-B
  return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="A pile growing from '+$(start)+' to '+$(end)+' in '+t+' years">'+o+'</svg>';}
 
 /* ---------- steps ---------- */
-const PARTS=['One deposit','The race','Change it','Tell it'];
+const PARTS=['One deposit','The race','Change it','Who is doing this','Tell it'];
 const A45={view:'A',xmax:45,ymaxA:2300,yrs:45,legend:1};
 const B67={view:'B',plan:0.3,now:67,ymaxB:54600,board:1};
 const gutName={early:'Sam',late:'Alex',tie:'about the same'};
@@ -308,10 +308,12 @@ const STEPS=[
  {part:2,title:'Change the math, watch the picture',st:Object.assign({},B67,{plan:0,towers:1,stack:1,tb:1,env:1,fbar:'drive'}),
   t:'You drive. <b>Before you move a slider, say what you think the picture will do.</b> The dashed outline shows where the picture was.',
   alt:'Change one thing at a time. Each slider is one part of the formula: the deposit, r, or how many years the deposits get to wait.'},
- {part:3,title:'Check yourself',st:{view:'P',panel:'check'},
+ {part:3,title:'A savings group in Niger',st:{view:'W'},t:()=>VS.cap(),widget:()=>VS.widget(),todo:()=>VS.done(),move:()=>VS.move(),
+  alt:'Lent coins are working: a loan buys peanuts, the peanuts become oil and cakes, the sales pay the loan back with a little extra, and that extra is lent again. Coins in a locked box do nothing, so they come back the same.'},
+ {part:4,title:'Check yourself',st:{view:'P',panel:'check'},
   t:'Three quick ones. Each asks you to connect a picture, a formula and a story.',
   alt:'Wrong answers get a hint that points at the picture. Try again as many times as you need.'},
- {part:3,title:'Tell the story',st:{view:'P',panel:'story'},
+ {part:4,title:'Tell the story',st:{view:'P',panel:'story'},
   t:'Math is finished when you can tell its story. Three sentences is enough. Then copy your work into Canvas.',
   alt:'Use the picture words: deposit, slice, pile, width, height, t. If you get stuck, go back to "Read the picture" and describe what you see.'}
 ];
@@ -418,13 +420,13 @@ function workText(){const mark=q=>ans[q]==='ok'?'correct'+(tries[q]>1?' (try '+t
  return ['Start at 22 or 32? (Raider FinanceLab)','My gut pick: '+(Story.gut?gutName[Story.gut]:'none'),'Check 1, which number changed: '+mark('q1'),'Check 2, Maya\'s formula: '+mark('q2')+(ans.q2==='ok'?'  $500 x (1 + 0.07)^50 = $14,729':''),'Check 3, doublings: '+mark('q3'),'Picture challenges done: '+Object.keys(qdone).length+' of 4',Story.orderLine(),'','My story','Beginning: '+(story.s1||''),'Middle: '+(story.s2||''),'End: '+(story.s3||'')].join('\n');}
 
 
-function draw(S,W,H,k){return S.view==='H'?drawH(S,W,H,k):S.view==='A'?drawA(S,W,H,k):drawB(S,W,H,k);}
+function draw(S,W,H,k){if(S.view==='W')return '';return S.view==='H'?drawH(S,W,H,k):S.view==='A'?drawA(S,W,H,k):drawB(S,W,H,k);}
 function onDrag(p,S,W,H,k){if(S.view==='A'&&S.scrub>0.5){const L=66*k,pw=W-L-22,sw=pw/(S.xmax+1),hi=Math.round(S.xmax);let y=clamp((p.x-L)/sw-0.5,0,hi);if(y>hi-0.2)y=hi;S.yrs=y;}return false;}
-function bindWidget(box,S){const r=el('g-range');if(!r)return;r.addEventListener('input',()=>{Story.mem.g67=+r.value;el('g-out').textContent=$(+r.value);Story.redraw();Story.poke();});}
+function bindWidget(box,S){if(S.view==='W'){VS.bind(box);return;}const r=el('g-range');if(!r)return;r.addEventListener('input',()=>{Story.mem.g67=+r.value;el('g-out').textContent=$(+r.value);Story.redraw();Story.poke();});}
 function onHit(d,S){
  if(d.i!=null&&S.fbar==='one'){S.cur=+d.i;if(S.hl==='start'||!S.hl)S.hl='t';return true;}
  if(d.a!=null){S.sel=+d.a;return S.fbar==='col';}
  return false;}
 Story.start({id:'startearly',lab:'FinanceLab',title:'Start at 22 or 32',DEF,PARTS,STEPS,draw,fbar:fbarHtml,bindFbar,bindWidget,panel:panelHtml,bindPanel,onHit,onDrag,onGhostEnd,
- settle:S=>{S.xk=-1;S.xp=0;},onStep:S=>{if(S.fbar==='drive')updateDrive();}});
+ settle:S=>{S.xk=-1;S.xp=0;},onStep:S=>{VS.show(S.view==='W');if(S.fbar==='drive')updateDrive();}});
 })();

@@ -15,4 +15,7 @@ TestYourself.mount({lab:'FinanceLab',id:'startearly',title:'Raider FinanceLab ·
   why:'end = start × (1 + r)ᵗ = 300 × 1.05²⁰, about $796.'},
  {q:'Why do the last ten years add the most money?',choices:['The pile is biggest then, so each 7% slice is biggest','Interest rates rise as you get older, so it earns more','You deposit more near retirement, so the pile jumps','Banks pay a loyalty bonus for staying many years'],answer:0,
   hint:'7% of a small pile is a small slice. What is 7% of a big pile?',step:10,stepName:'ten years late',
-  why:'The same 7% of a much bigger pile is a much bigger slice. Starting late costs you the last, biggest doubling.'}]});
+  why:'The same 7% of a much bigger pile is a much bigger slice. Starting late costs you the last, biggest doubling.'},
+ {q:'Say a savings group charges 5% a month, and every repayment goes straight back out as a new loan. What do 10,000 francs grow to in 3 months?',answer:11576.25,tol:1,unit:'francs',
+  hint:v=>Math.abs(v-11500)<2?'That is 500 francs three times: 5% of the first 10,000 only. The extra comes back and is lent too, so it earns 5% as well.':'Each month the whole pile is lent at 5%: 10,000 × 1.05, then × 1.05, then × 1.05.',step:18,stepName:'a savings group in Niger',
+  why:'10,000 × 1.05³ = 11,576.25. The extra 76.25 over simple interest is the green part: the extra earning its own extra.'}]});
